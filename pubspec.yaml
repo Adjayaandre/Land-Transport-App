@@ -1,0 +1,71 @@
+name: land_transport_management
+description: Land Transport Management System - Digitalisasi pencatatan transportasi darat.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Navigation
+  go_router: ^13.2.0
+
+  # Backend (Supabase)
+  supabase_flutter: ^2.3.2
+
+  # Local database (offline)
+  sqflite: ^2.3.2
+  path: ^1.8.3
+
+  # Secure storage
+  flutter_secure_storage: ^9.0.0
+
+  # Shared preferences (cache)
+  shared_preferences: ^2.2.2
+
+  # Connectivity
+  connectivity_plus: ^5.0.2
+
+  # Kamera & foto
+  image_picker: ^1.0.7
+  flutter_image_compress: ^2.1.0
+
+  # Digital signature
+  signature: ^5.4.1
+
+  # PDF & Excel export
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  excel: ^4.0.2
+
+  # HTTP client
+  dio: ^5.4.1
+
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.3.3
+  equatable: ^2.0.5
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.3.9
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - .env

@@ -1,0 +1,1 @@
+// TODO: Implementasi trip_list_screen
