@@ -1,11 +1,28 @@
 class AppException implements Exception {
   final String message;
   const AppException(this.message);
-  @override String toString() => message;
+
+  @override
+  String toString() => message;
 }
 
-class NetworkException    extends AppException { const NetworkException([String m = 'Tidak ada koneksi internet']) : super(m); }
-class AuthException       extends AppException { const AuthException([String m = 'Sesi tidak valid. Silakan login ulang.']) : super(m); }
-class StorageException    extends AppException { const StorageException([String m = 'Gagal menyimpan data.']) : super(m); }
-class SyncException       extends AppException { const SyncException([String m = 'Sinkronisasi gagal.']) : super(m); }
-class ValidationException extends AppException { const ValidationException(String m) : super(m); }
+class NetworkException extends AppException {
+  const NetworkException([super.message = 'Tidak ada koneksi internet']);
+}
+
+class AuthException extends AppException {
+  const AuthException(
+      [super.message = 'Sesi tidak valid. Silakan login ulang.']);
+}
+
+class StorageException extends AppException {
+  const StorageException([super.message = 'Gagal menyimpan data.']);
+}
+
+class SyncException extends AppException {
+  const SyncException([super.message = 'Sinkronisasi gagal.']);
+}
+
+class ValidationException extends AppException {
+  const ValidationException(super.message);
+}
