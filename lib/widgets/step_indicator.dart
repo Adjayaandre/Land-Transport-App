@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../core/theme/app_text_colors.dart';
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
@@ -39,7 +40,7 @@ class StepIndicator extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           '$currentStep/$totalSteps · $stepLabel',
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
         ),
       ],
     );

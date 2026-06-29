@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../core/theme/app_text_colors.dart';
 
 enum TripStatus { ongoing, completed, pending, cancelled }
 
@@ -24,6 +25,7 @@ class AppBadge extends StatelessWidget {
           AppColors.cancelled
         ),
     };
+    final textColor = AppTextColors.isDark(context) ? Colors.white : fg;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -42,7 +44,7 @@ class AppBadge extends StatelessWidget {
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+                  fontSize: 11, fontWeight: FontWeight.w600, color: textColor)),
         ],
       ),
     );

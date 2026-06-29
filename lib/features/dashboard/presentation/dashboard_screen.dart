@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_text_colors.dart';
+import '../../../core/constants/app_routes.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../domain/dashboard_provider.dart';
 import '../domain/dashboard_model.dart';
@@ -20,7 +23,6 @@ class DashboardScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async => refresh(),
@@ -60,38 +62,24 @@ class DashboardScreen extends ConsumerWidget {
                             style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
                           ),
                           Text(
-                            user?.name ?? 'Pengguna',
+                            user?.displayName ?? 'Pengguna',
                             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                         ],
                       ),
                     ),
-                    // Notifikasi
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                    // Pengaturan
+                    GestureDetector(
+                      onTap: () => context.go(AppRoutes.pengaturan),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration:   BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.00),
+                          shape: BoxShape.circle,
                         ),
-                        Positioned(
-                          top: -2,
-                          right: -2,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
-                            child: const Center(
-                              child: Text('1', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
-                            ),
-                          ),
-                        ),
-                      ],
+                        child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+                      ),
                     ),
                   ],
                 ),
@@ -119,31 +107,38 @@ class DashboardScreen extends ConsumerWidget {
                       Expanded(child: _ShimmerBox(height: 80)),
                     ]),
                     error: (_, __) => _errBox('Gagal memuat statistik'),
-                    data: (s) => Row(
-                      children: [
-                        Expanded(
-                          child: _GreenStatCard(
-                            label: 'Completed Today',
-                            value: '${s.perjalananHariIni}',
+                    data: (s) => IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _GreenStatCard(
+                              label: 'Completed Today',
+                              value: '${s.perjalananHariIni}',
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _GreenStatCard(
-                            label: 'Last 7 Days',
-                            subLabel: 'Total KM:',
-                            value: '${s.totalPerjalanan}',
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _GreenStatCard(
+                              label: 'Last Month',
+                              subLabel: 'Total KM:',
+                              value: '${s.totalPerjalanan}',
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // ── Recent Activities ────────────────────────
-                  const Text(
-                    'Recent Activities',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  Text(
+                    'Riwayat Perjalanan',
+                    style: AppTextColors.style(
+                      context,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 10),
 
@@ -165,31 +160,41 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+      );
   }
 
-  Widget _errBox(String msg) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.red[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red[200]!),
+  static Widget _errBox(String msg) => Builder(
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[200]!),
+          ),
+          child: Row(children: [
+            Icon(Icons.error_outline, color: Colors.red[700], size: 18),
+            const SizedBox(width: 8),
+            Text(
+              msg,
+              style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveText),
+            ),
+          ]),
         ),
-        child: Row(children: [
-          Icon(Icons.error_outline, color: Colors.red[700], size: 18),
-          const SizedBox(width: 8),
-          Text(msg, style: TextStyle(color: Colors.red[700], fontSize: 13)),
-        ]),
       );
 
-  Widget _emptyBox() => Container(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        alignment: Alignment.center,
-        child: Column(children: [
-          Icon(Icons.inbox_rounded, size: 48, color: Colors.grey[300]),
-          const SizedBox(height: 10),
-          Text('Belum ada perjalanan', style: TextStyle(color: Colors.grey[400], fontSize: 13)),
-        ]),
+  static Widget _emptyBox() => Builder(
+        builder: (context) => Container(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          alignment: Alignment.center,
+          child: Column(children: [
+            Icon(Icons.inbox_rounded, size: 48, color: context.adaptiveTextMuted),
+            const SizedBox(height: 10),
+            Text(
+              'Belum ada perjalanan',
+              style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveText),
+            ),
+          ]),
+        ),
       );
 }
 
@@ -207,25 +212,35 @@ class _ActiveTripsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Active Trips',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 10),
           if (ongoing.isEmpty)
             Row(children: [
               const Icon(Icons.check_circle_outline, size: 16, color: AppColors.completed),
               const SizedBox(width: 6),
-              Text('Tidak ada perjalanan aktif', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              Text(
+                'Tidak ada perjalanan aktif',
+                style: AppTextColors.style(context, fontSize: 13),
+              ),
             ])
           else
             ...ongoing.take(2).map((trip) => _OngoingRow(trip: trip)),
@@ -253,23 +268,39 @@ class _OngoingRow extends StatelessWidget {
               decoration: const BoxDecoration(color: AppColors.ongoing, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
-            const Text('Ongoing Trip', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+            Text(
+              'Ongoing Trip',
+              style: AppTextColors.style(
+                context,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ]),
           const SizedBox(height: 6),
           Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Incoming/Outgoing', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                Text(trip.nomorPolisi, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                Text(
+                  'Incoming/Outgoing',
+                  style: AppTextColors.style(context, fontSize: 10, color: context.adaptiveTextMuted),
+                ),
+                Text(
+                  trip.nomorPolisi,
+                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
               ]),
             ),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Route', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                Text(
+                  'Route',
+                  style: AppTextColors.style(context, fontSize: 10, color: context.adaptiveTextMuted),
+                ),
                 Text(
                   '${trip.titikJemput} → ${trip.titikTujuan}',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w500),
                 ),
               ]),
             ),
@@ -291,22 +322,43 @@ class _GreenStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF388E3C))),
+          Text(
+            label,
+            style: AppTextColors.style(
+              context,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF388E3C),
+            ),
+          ),
           const SizedBox(height: 4),
           if (subLabel != null)
-            Text(subLabel!, style: const TextStyle(fontSize: 11, color: Color(0xFF388E3C))),
+            Text(
+              subLabel!,
+              style: AppTextColors.style(
+                context,
+                fontSize: 11,
+                color: isDark ? Colors.white : const Color(0xFF388E3C),
+              ),
+            ),
           Text(
             value,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF1B5E20)),
+            style: AppTextColors.style(
+              context,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : const Color(0xFF1B5E20),
+            ),
           ),
         ],
       ),
@@ -346,12 +398,16 @@ class _ActivityItem extends StatelessWidget {
               children: [
                 Text(
                   trip.namaDriver,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: AppTextColors.style(
+                    context,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${isCompleted ? 'Incoming' : 'Ongoing'} Trip. ${trip.nomorPolisi}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
                 ),
               ],
             ),
@@ -368,7 +424,10 @@ class _ActivityItem extends StatelessWidget {
                   color: isCompleted ? AppColors.completed : AppColors.ongoing,
                 ),
                 const SizedBox(width: 4),
-                Text(_timeAgo(trip.tanggal), style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                Text(
+                  _timeAgo(trip.tanggal),
+                  style: AppTextColors.style(context, fontSize: 11, color: context.adaptiveTextSecondary),
+                ),
               ]),
             ],
           ),

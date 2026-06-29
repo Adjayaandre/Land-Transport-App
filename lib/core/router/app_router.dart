@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,32 +9,108 @@ import '../../features/auth/domain/auth_state.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/profil/presentation/profil_screen.dart';
+import '../../features/pengaturan/presentation/pengaturan_screen.dart';
+import '../../features/perjalanan/presentation/tambah_perjalanan_screen.dart';
+import '../../features/kendaraan/presentation/kelola_kendaraan_screen.dart';
+import '../../features/kendaraan/presentation/tambah_kendaraan_screen.dart';
+import '../../features/driver/presentation/kelola_driver_screen.dart';
+import '../../features/driver/presentation/tambah_driver_screen.dart';
 
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen(this.title);
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.construction_rounded, size: 48, color: Colors.grey[300]),
-          const SizedBox(height: 12),
-          Text(title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text('Sedang dalam pengembangan',
-              style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-        ]),
-      );
+CustomTransitionPage<void> _fadePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionsBuilder: (_, anim, __, child) =>
+        FadeTransition(opacity: anim, child: child),
+    transitionDuration: const Duration(milliseconds: 250),
+  );
 }
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+List<RouteBase> _shellRoutes() => [
+      GoRoute(
+        name: AppRoutes.dashboardName,
+        path: AppRoutes.dashboard,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const DashboardScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.tambahPerjalananName,
+        path: AppRoutes.tambahPerjalanan,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const TambahPerjalananScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.kelolaKendaraanName,
+        path: AppRoutes.kelolaKendaraan,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const KelolaKendaraanScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.tambahKendaraanName,
+        path: AppRoutes.tambahKendaraan,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: TambahKendaraanScreen(
+            kendaraanId: state.uri.queryParameters['id'],
+          ),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.kelolaDriverName,
+        path: AppRoutes.kelolaDriver,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const KelolaDriverScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.tambahDriverName,
+        path: AppRoutes.tambahDriver,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: TambahDriverScreen(
+            driverId: state.uri.queryParameters['id'],
+          ),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.profilName,
+        path: AppRoutes.profil,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const ProfilScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.pengaturanName,
+        path: AppRoutes.pengaturan,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const PengaturanScreen(),
+        ),
+      ),
+    ];
 
-  return GoRouter(
+final routerProvider = Provider<GoRouter>((ref) {
+  // Hanya rebuild router saat status login berubah, bukan saat profil di-update
+  ref.watch(authProvider.select((s) => s.status));
+
+  final router = GoRouter(
+    debugLogDiagnostics: kDebugMode,
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
-      final path   = state.uri.path;
-      final status = authState.status;
+      final path = state.uri.path;
+      final status = ref.read(authProvider).status;
 
       if (status == AuthStatus.initial || status == AuthStatus.loading) {
         return path != AppRoutes.splash ? AppRoutes.splash : null;
@@ -50,9 +127,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (path == AppRoutes.splash) return AppRoutes.login;
       return null;
     },
-
     routes: [
-      // Tanpa shell
       GoRoute(
         path: AppRoutes.splash,
         builder: (_, __) => const SplashScreen(),
@@ -67,87 +142,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionDuration: const Duration(milliseconds: 350),
         ),
       ),
-
-      // Dengan shell (sidebar)
       ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
-        routes: [
-          GoRoute(
-            path: AppRoutes.dashboard,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const DashboardScreen(),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.tambahPerjalanan,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Tambah Perjalanan'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.tambahKendaraan,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Tambah Kendaraan'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.tambahDriver,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Tambah Driver'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.riwayat,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Riwayat Perjalanan'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.cari,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Cari Kegiatan'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.profil,
-            pageBuilder: (_, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const _PlaceholderScreen('Profil'),
-              transitionsBuilder: (_, anim, __, child) =>
-                  FadeTransition(opacity: anim, child: child),
-              transitionDuration: const Duration(milliseconds: 250),
-            ),
-          ),
-        ],
+        builder: (context, state, child) => AppShell(
+          currentPath: state.uri.path,
+          child: child,
+        ),
+        routes: _shellRoutes(),
       ),
     ],
-
     errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Halaman tidak ditemukan: ${state.uri}')),
+      body: Center(
+        child: Text('Halaman tidak ditemukan: ${state.uri.path}'),
+      ),
     ),
   );
+
+  ref.onDispose(router.dispose);
+  return router;
 });

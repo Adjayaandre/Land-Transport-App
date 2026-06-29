@@ -16,13 +16,27 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id:        json['id']           as String,
-      // DB pakai 'nama_lengkap', fallback ke 'name' untuk kompatibilitas
       name:      (json['nama_lengkap'] ?? json['name'] ?? 'Pengguna') as String,
       email:     (json['email']        ?? '') as String,
-      // DB pakai 'peran', fallback ke 'role'
       role:      (json['peran']        ?? json['role'] ?? 'driver') as String,
       avatarUrl: json['avatar_url']    as String?,
     );
+  }
+
+  /// Nama tampilan: prioritas name → prefix email → fallback.
+  String get displayName {
+    final n = name.trim();
+    if (n.isNotEmpty &&
+        n.toLowerCase() != 'pengguna' &&
+        n.toLowerCase() != 'pengguna baru') {
+      return n;
+    }
+    final e = email.trim();
+    if (e.contains('@')) {
+      final local = e.split('@').first.trim();
+      if (local.isNotEmpty) return local;
+    }
+    return n.isNotEmpty ? n : 'Pengguna';
   }
 
   String get peranLabel {

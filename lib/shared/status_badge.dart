@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../core/theme/app_text_colors.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status;
@@ -21,6 +22,7 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AppTextColors.isDark(context) ? Colors.white : _color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -30,7 +32,7 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(_label,
           style: TextStyle(
-              color: _color, fontSize: 12, fontWeight: FontWeight.w600)),
+              color: textColor, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 }

@@ -5,24 +5,24 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../data/auth_repository.dart';
 import 'auth_state.dart';
 
-/// Provider untuk AuthRepository (singleton)
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
 });
 
-/// Provider utama untuk state autentikasi
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthNotifier(repository);
 });
 
-/// StateNotifier yang mengelola state autentikasi
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   StreamSubscription<supabase.AuthState>? _authSubscription;
+  bool _isLoggingIn = false;
 
   AuthNotifier(this._repository) : super(const AuthState.initial()) {
     _authSubscription = _repository.authStateChanges.listen((event) async {
+      if (_isLoggingIn) return;
+
       if (event.event == supabase.AuthChangeEvent.signedOut) {
         state = const AuthState.unauthenticated();
         return;
@@ -37,12 +37,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 
-  /// Cek status autentikasi saat ini (digunakan saat splash screen)
   Future<void> checkAuthStatus() async {
     state = const AuthState.loading();
 
     try {
-      // Delay sedikit agar splash screen terlihat
       await Future.delayed(const Duration(milliseconds: 1500));
 
       if (_repository.hasActiveSession) {
@@ -50,22 +48,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         state = const AuthState.unauthenticated();
       }
-    } catch (e) {
+    } catch (_) {
       state = const AuthState.unauthenticated();
     }
   }
 
-  /// Login dengan email dan password
   Future<void> login(String email, String password) async {
+    _isLoggingIn = true;
     state = const AuthState.loading();
 
     try {
       await _repository.login(email, password);
-      await _loadCurrentUser();
+      await _loadCurrentUser(notifyProfileMissing: true);
     } catch (e) {
-      // Tangkap error spesifik dari Supabase
       String message = 'Terjadi kesalahan. Silakan coba lagi.';
-
       final errorStr = e.toString().toLowerCase();
       if (errorStr.contains('invalid login credentials') ||
           errorStr.contains('invalid_credentials')) {
@@ -80,35 +76,52 @@ class AuthNotifier extends StateNotifier<AuthState> {
           errorStr.contains('connection')) {
         message = 'Tidak ada koneksi internet.';
       }
-
       state = AuthState.error(message);
+    } finally {
+      _isLoggingIn = false;
     }
   }
 
-  /// Logout
+  Future<void> refreshProfile() async {
+    if (_repository.hasActiveSession) {
+      await _loadCurrentUser();
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _repository.logout();
-    } catch (_) {
-      // Tetap logout meskipun gagal di server
-    }
+    } catch (_) {}
     state = const AuthState.unauthenticated();
   }
 
-  /// Reset error state kembali ke unauthenticated
   void clearError() {
     if (state.status == AuthStatus.error) {
       state = const AuthState.unauthenticated();
     }
   }
 
-  Future<void> _loadCurrentUser() async {
+  Future<void> _loadCurrentUser({bool notifyProfileMissing = false}) async {
+    if (!_repository.hasActiveSession) {
+      state = const AuthState.unauthenticated();
+      return;
+    }
+
     final user = await _repository.fetchUserProfile();
     if (user != null) {
       state = AuthState.authenticated(user);
-    } else {
-      state = const AuthState.unauthenticated();
+      return;
     }
+
+    if (notifyProfileMissing) {
+      state = AuthState.error(
+        'Login berhasil, tetapi profil tidak ditemukan. '
+        'Jalankan SQL sync superadmin di Supabase, lalu login ulang.',
+      );
+      return;
+    }
+
+    state = const AuthState.unauthenticated();
   }
 
   @override

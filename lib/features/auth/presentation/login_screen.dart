@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/theme/app_text_colors.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../domain/auth_provider.dart';
 import '../domain/auth_state.dart';
 
@@ -62,9 +64,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         );
   }
 
+  InputDecoration _inputDecoration({
+    required String hint,
+    IconData? prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final borderRadius = BorderRadius.circular(10);
+    final borderColor = theme.dividerTheme.color ?? scheme.outline;
+    final focusColor = scheme.primary;
+    final hintColor = scheme.onSurface.withValues(alpha: 0.45);
+    final iconColor = scheme.onSurface.withValues(alpha: 0.55);
+
+    OutlineInputBorder outlineBorder({Color? color, double width = 1}) {
+      return OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: color ?? borderColor, width: width),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: hintColor, fontSize: 14),
+      prefixIcon: prefixIcon != null
+          ? Icon(prefixIcon, size: 20, color: iconColor)
+          : null,
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: theme.inputDecorationTheme.fillColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: outlineBorder(),
+      enabledBorder: outlineBorder(),
+      focusedBorder: outlineBorder(color: focusColor, width: 1.5),
+      errorBorder: outlineBorder(color: scheme.error),
+      focusedErrorBorder: outlineBorder(color: scheme.error, width: 1.5),
+      errorStyle: TextStyle(color: scheme.error, fontSize: 12),
+    );
+  }
+
+  SystemUiOverlayStyle _overlayStyle(bool isDark) {
+    return SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor:
+          isDark ? AppColors.darkSurface : AppColors.surface,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
@@ -94,31 +148,78 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: _overlayStyle(isDarkMode),
       child: Scaffold(
-        backgroundColor: Colors.white,
         body: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeIn,
-            child: SlideTransition(
-              position: _slideUp,
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildLogo(),
-                      const SizedBox(height: 48),
-                      _buildForm(authState),
-                      const SizedBox(height: 20),
-                    ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              FadeTransition(
+                opacity: _fadeIn,
+                child: SlideTransition(
+                  position: _slideUp,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildLogo(),
+                          const SizedBox(height: 48),
+                          _buildForm(authState),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 16,
+                child: Center(
+                  child: Material(
+                    color: scheme.surface
+                        .withValues(alpha: isDarkMode ? 0.6 : 0.9),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isDarkMode
+                                ? Icons.dark_mode_rounded
+                                : Icons.light_mode_rounded,
+                            size: 20,
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Mode Gelap',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurface.withValues(alpha: 0.75),
+                            ),
+                          ),
+                          Switch(
+                            value: isDarkMode,
+                            onChanged: (enabled) => ref
+                                .read(themeModeProvider.notifier)
+                                .setDarkMode(enabled),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -128,13 +229,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildLogo() {
     return Column(
       children: [
-        // Kotak logo LTM
         Container(
           width: 90,
           height: 90,
           decoration: BoxDecoration(
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Center(
             child: RichText(
@@ -150,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
                   TextSpan(
-                    text: 'M',
+                    text: 'MS',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -164,12 +271,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Land Transport Management',
-          style: TextStyle(
+        Text(
+          'Land Transport Management System',
+          style: AppTextColors.style(
+            context,
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: 0.65),
             letterSpacing: 0.3,
           ),
         ),
@@ -182,47 +293,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       key: _formKey,
       child: Column(
         children: [
-          // Email field
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             enabled: !authState.isLoading,
-            style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Username / Email',
-              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FB),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color.fromARGB(255, 98, 98, 98)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.danger),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: AppColors.danger, width: 1.5),
-              ),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            decoration: _inputDecoration(
+              hint: 'Username / Email',
+              prefixIcon: Icons.person_outline_rounded,
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty)
+              if (value == null || value.trim().isEmpty) {
                 return AppStrings.errorRequired;
+              }
               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                   .hasMatch(value.trim())) {
                 return 'Format email tidak valid';
@@ -231,23 +318,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             },
           ),
           const SizedBox(height: 16),
-
-          // Password field
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
             enabled: !authState.isLoading,
-            style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            decoration: _inputDecoration(
+              hint: 'Password',
+              prefixIcon: Icons.lock_outline_rounded,
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: AppColors.textMuted,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.55),
                   size: 20,
                 ),
                 onPressed: authState.isLoading
@@ -255,72 +346,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     : () =>
                         setState(() => _obscurePassword = !_obscurePassword),
               ),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FB),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color.fromARGB(255, 98, 98, 98)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.danger),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: AppColors.danger, width: 1.5),
-              ),
             ),
             validator: (value) {
-              if (value == null || value.isEmpty)
+              if (value == null || value.isEmpty) {
                 return AppStrings.errorRequired;
+              }
               if (value.length < 6) return 'Minimal 6 karakter';
               return null;
             },
             onFieldSubmitted: (_) => _handleLogin(),
           ),
           const SizedBox(height: 24),
-
-          // Login button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: authState.isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    AppColors.primary.withValues(alpha: 0.6),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                disabledBackgroundColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.6),
+                disabledForegroundColor: Theme.of(context)
+                    .colorScheme
+                    .onPrimary
+                    .withValues(alpha: 0.8),
               ),
               child: authState.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5),
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        strokeWidth: 2.5,
+                      ),
                     )
                   : const Text(
                       'LOGIN',
                       style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
                     ),
             ),
           ),
