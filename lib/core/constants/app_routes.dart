@@ -4,6 +4,7 @@ abstract class AppRoutes {
   static const dashboard        = '/dashboard';
   static const tambahPerjalanan = '/tambah-perjalanan';
   static const riwayatPerjalanan = '/riwayat-perjalanan';
+  static const editPerjalanan = '/edit-perjalanan';
   static const kelolaKendaraan  = '/kelola-kendaraan';
   static const tambahKendaraan  = '/tambah-kendaraan';
   static const kelolaDriver     = '/kelola-driver';
@@ -14,6 +15,7 @@ abstract class AppRoutes {
   static const dashboardName        = 'dashboard';
   static const tambahPerjalananName = 'tambahPerjalanan';
   static const riwayatPerjalananName = 'riwayatPerjalanan';
+  static const editPerjalananName = 'editPerjalanan';
   static const kelolaKendaraanName  = 'kelolaKendaraan';
   static const tambahKendaraanName  = 'tambahKendaraan';
   static const kelolaDriverName     = 'kelolaDriver';

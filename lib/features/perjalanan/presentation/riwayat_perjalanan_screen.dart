@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../data/perjalanan_repository.dart';
@@ -58,7 +59,13 @@ class RiwayatPerjalananScreen extends ConsumerWidget {
                 return _RiwayatCard(
                   trip: trip,
                   isSuperadmin: isSuperadmin,
-                  onEdit: () => _showEditDialog(context, ref, trip),
+                  onEdit: () async {
+                    final updated = await context.push<bool>(
+                      AppRoutes.editPerjalanan,
+                      extra: trip,
+                    );
+                    if (updated == true) ref.invalidate(_riwayatProvider);
+                  },
                   onDelete: () => _confirmDelete(context, ref, trip),
                 );
               },
@@ -111,78 +118,6 @@ class RiwayatPerjalananScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _showEditDialog(
-      BuildContext context, WidgetRef ref, Map<String, dynamic> trip) async {
-    final picController = TextEditingController(text: trip['pic'] as String? ?? '');
-    final jemputController = TextEditingController(text: trip['titik_jemput'] as String? ?? '');
-    final tujuanController = TextEditingController(text: trip['titik_tujuan'] as String? ?? '');
-    final deskripsiController = TextEditingController(text: trip['deskripsi'] as String? ?? '');
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Perjalanan'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: picController,
-                decoration: const InputDecoration(labelText: 'PIC'),
-              ),
-              TextField(
-                controller: jemputController,
-                decoration: const InputDecoration(labelText: 'Titik Jemput'),
-              ),
-              TextField(
-                controller: tujuanController,
-                decoration: const InputDecoration(labelText: 'Titik Tujuan'),
-              ),
-              TextField(
-                controller: deskripsiController,
-                decoration: const InputDecoration(labelText: 'Deskripsi'),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
-
-    if (saved != true) return;
-
-    try {
-      await ref.read(tripRepositoryProvider).update(trip['id'] as String, {
-        'pic': picController.text.trim(),
-        'titik_jemput': jemputController.text.trim(),
-        'titik_tujuan': tujuanController.text.trim(),
-        'deskripsi': deskripsiController.text.trim(),
-      });
-      ref.invalidate(_riwayatProvider);
-      ref.invalidate(perjalananTerbaruProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perjalanan berhasil diperbarui')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memperbarui: $e')),
-        );
-      }
-    }
-  }
 }
 
 class _RiwayatCard extends StatelessWidget {
