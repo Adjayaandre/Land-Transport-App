@@ -14,7 +14,6 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
-    final statsAsync = ref.watch(dashboardStatsProvider);
     final listAsync = ref.watch(perjalananTerbaruProvider);
 
     void refresh() {
@@ -52,20 +51,24 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       child: const Icon(Icons.person_rounded, color: Colors.white, size: 26),
                     ),
-                    const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selamat Datang,',
-                            style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          Text(
-                            user?.displayName ?? 'Pengguna',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                          child: const Text(
+                            'LTMS',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                     // Pengaturan
@@ -91,53 +94,72 @@ class DashboardScreen extends ConsumerWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
 
-                  // ── Active Trips Card ────────────────────────
-                  listAsync.when(
-                    loading: () => _ShimmerBox(height: 100),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (list) => _ActiveTripsCard(trips: list),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Stat Cards (hijau) ───────────────────────
-                  statsAsync.when(
-                    loading: () => Row(children: [
-                      Expanded(child: _ShimmerBox(height: 80)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _ShimmerBox(height: 80)),
-                    ]),
-                    error: (_, __) => _errBox('Gagal memuat statistik'),
-                    data: (s) => IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _GreenStatCard(
-                              label: 'Completed Today',
-                              value: '${s.perjalananHariIni}',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _GreenStatCard(
-                              label: 'Last Month',
-                              subLabel: 'Total KM:',
-                              value: '${s.totalPerjalanan}',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // ── Welcome Card (teal) ───────────────────────
+                  _WelcomeCard(nama: user?.displayName ?? 'Pengguna'),
                   const SizedBox(height: 16),
 
-                  // ── Recent Activities ────────────────────────
+                  // ── Status Kendaraan ──────────────────────────
                   Text(
-                    'Riwayat Perjalanan',
+                    'Status Kendaraan',
                     style: AppTextColors.style(
                       context,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final kendaraanAsync = ref.watch(kendaraanStatusProvider);
+                      return kendaraanAsync.when(
+                        loading: () => _ShimmerBox(height: 80),
+                        error: (_, __) => _errBox('Gagal memuat status kendaraan'),
+                        data: (list) {
+                          if (list.isEmpty) {
+                            return _emptyBox();
+                          }
+                          return SizedBox(
+                            height: 90,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: list.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 10),
+                              itemBuilder: (context, i) => _KendaraanStatusCard(kendaraan: list[i]),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Recent Activities ────────────────────────
+                  GestureDetector(
+                    onTap: () => context.push(AppRoutes.riwayatPerjalanan),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Riwayat Perjalanan Selesai',
+                          style: AppTextColors.style(
+                            context,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Row(children: [
+                          Text(
+                            'Lihat semua',
+                            style: AppTextColors.style(
+                              context,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
+                        ]),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -198,168 +220,136 @@ class DashboardScreen extends ConsumerWidget {
       );
 }
 
-// ── Active Trips Card ─────────────────────────────────────────────────────────
-
-class _ActiveTripsCard extends StatelessWidget {
-  final List<PerjalananSingkat> trips;
-  const _ActiveTripsCard({required this.trips});
+class _WelcomeCard extends StatelessWidget {
+  final String nama;
+  const _WelcomeCard({required this.nama});
 
   @override
   Widget build(BuildContext context) {
-    final ongoing = trips.where((p) => !p.dokumenLengkap).toList();
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F9B8E), Color(0xFF14B8A6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: const Color(0xFF14B8A6).withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            'Active Trips',
-            style: Theme.of(context).textTheme.titleSmall,
+          Positioned(
+            right: -10,
+            top: -10,
+            child: Icon(
+              Icons.alt_route_rounded,
+              size: 90,
+              color: Colors.white.withValues(alpha: 0.18),
+            ),
           ),
-          const SizedBox(height: 10),
-          if (ongoing.isEmpty)
-            Row(children: [
-              const Icon(Icons.check_circle_outline, size: 16, color: AppColors.completed),
-              const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'Tidak ada perjalanan aktif',
-                style: AppTextColors.style(context, fontSize: 13),
+                'Selamat Datang,',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
               ),
-            ])
-          else
-            ...ongoing.take(2).map((trip) => _OngoingRow(trip: trip)),
+              const SizedBox(height: 2),
+              Text(
+                '$nama!',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _OngoingRow extends StatelessWidget {
-  final PerjalananSingkat trip;
-  const _OngoingRow({required this.trip});
+class _KendaraanStatusCard extends StatelessWidget {
+  final Map<String, dynamic> kendaraan;
+  const _KendaraanStatusCard({required this.kendaraan});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(color: AppColors.ongoing, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Ongoing Trip',
-              style: AppTextColors.style(
-                context,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 6),
-          Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  'Incoming/Outgoing',
-                  style: AppTextColors.style(context, fontSize: 10, color: context.adaptiveTextMuted),
-                ),
-                Text(
-                  trip.nomorPolisi,
-                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-              ]),
-            ),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  'Route',
-                  style: AppTextColors.style(context, fontSize: 10, color: context.adaptiveTextMuted),
-                ),
-                Text(
-                  '${trip.titikJemput} → ${trip.titikTujuan}',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-              ]),
-            ),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Green Stat Card ───────────────────────────────────────────────────────────
-
-class _GreenStatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? subLabel;
-
-  const _GreenStatCard({required this.label, required this.value, this.subLabel});
-
-  @override
-  Widget build(BuildContext context) {
+    final aktif = kendaraan['aktif'] as bool? ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bgColor = aktif
+        ? (isDark ? const Color(0xFF1B4332) : const Color(0xFFE8F5E9))
+        : (isDark ? const Color(0xFF4A3B0F) : const Color(0xFFFEF3C7));
+    final textColor = aktif
+        ? (isDark ? Colors.white : const Color(0xFF388E3C))
+        : (isDark ? Colors.white : const Color(0xFF92660B));
+    final dotColor = aktif ? AppColors.completed : const Color(0xFFF59E0B);
+
+    final merekModel = [kendaraan['merek'], kendaraan['model']]
+        .where((e) => e != null && '$e'.isNotEmpty)
+        .join(' ');
+
     return Container(
+      width: 140,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFE8F5E9),
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTextColors.style(
-              context,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF388E3C),
+          Row(children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
-          ),
-          const SizedBox(height: 4),
-          if (subLabel != null)
+            const SizedBox(width: 6),
             Text(
-              subLabel!,
+              aktif ? 'Aktif' : 'Tidak Aktif',
               style: AppTextColors.style(
                 context,
                 fontSize: 11,
-                color: isDark ? Colors.white : const Color(0xFF388E3C),
+                fontWeight: FontWeight.w600,
+                color: textColor,
               ),
             ),
+          ]),
+          const SizedBox(height: 8),
           Text(
-            value,
+            kendaraan['nomor_polisi'] as String? ?? '-',
             style: AppTextColors.style(
               context,
-              fontSize: 26,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF1B5E20),
+              color: textColor,
             ),
           ),
+          if (merekModel.isNotEmpty)
+            Text(
+              merekModel,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextColors.style(
+                context,
+                fontSize: 11,
+                color: textColor,
+              ),
+            ),
         ],
       ),
     );
@@ -374,78 +364,72 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = trip.dokumenLengkap;
-    final circleColor = isCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFFEF3C7);
-    final iconColor = isCompleted ? AppColors.completed : AppColors.ongoing;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Ikon mobil dalam lingkaran
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: circleColor, shape: BoxShape.circle),
-            child: Icon(Icons.directions_car_rounded, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  trip.namaDriver,
-                  style: AppTextColors.style(
-                    context,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${isCompleted ? 'Incoming' : 'Ongoing'} Trip. ${trip.nomorPolisi}',
-                  style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
-                ),
-              ],
-            ),
-          ),
-
-          // Waktu + status
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Row(children: [
-                Icon(
-                  isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                  size: 12,
-                  color: isCompleted ? AppColors.completed : AppColors.ongoing,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8F5E9),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(Icons.directions_car_rounded,
+                    color: AppColors.completed, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  trip.nomorPolisi,
+                  style: AppTextColors.style(context, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Row(children: [
+                const Icon(Icons.check_circle, size: 14, color: AppColors.completed),
                 const SizedBox(width: 4),
                 Text(
-                  _timeAgo(trip.tanggal),
-                  style: AppTextColors.style(context, fontSize: 11, color: context.adaptiveTextSecondary),
+                  'Completed',
+                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.completed),
                 ),
               ]),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Dari: ${trip.titikJemput} → Ke: ${trip.titikTujuan}',
+            style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveTextSecondary),
+          ),
+          const SizedBox(height: 4),
+          if (trip.jarak != null)
+            Text(
+              'Jarak: ${trip.jarak!.toStringAsFixed(0)} KM',
+              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+            ),
+          if (trip.waktuTiba != null)
+            Text(
+              'Waktu Selesai: ${trip.waktuTiba}',
+              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+            ),
+          if (trip.penumpang.isNotEmpty)
+            Text(
+              'Penumpang: ${trip.penumpang.join(', ')}',
+              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+            ),
         ],
       ),
     );
-  }
-
-  String _timeAgo(String raw) {
-    try {
-      final d = DateTime.parse(raw);
-      final diff = DateTime.now().difference(d);
-      if (diff.inDays > 0) return '${diff.inDays} days ago';
-      if (diff.inHours > 0) return '${diff.inHours} hours ago';
-      return '${diff.inMinutes} min ago';
-    } catch (_) {
-      return raw;
-    }
   }
 }
 

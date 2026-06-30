@@ -7,7 +7,7 @@ import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../../shared/signature_pad.dart';
 import '../../auth/domain/auth_provider.dart';
-import '../data/trip_repository.dart';
+import '../data/perjalanan_repository.dart';
 import '../../dashboard/domain/dashboard_provider.dart';
 
 class TambahPerjalananScreen extends ConsumerStatefulWidget {
@@ -35,11 +35,44 @@ class _TambahPerjalananScreenState
   TimeOfDay _waktuJemput = TimeOfDay.now();
   TimeOfDay _waktuSampai = TimeOfDay.now();
 
+  // Kendaraan
+  List<Map<String, dynamic>> _daftarKendaraan = [];
+  String? _kendaraanId;
+  double? _kendaraanOdometerSekarang;
+  bool _loadingKendaraan = true;
+
   // Signature
   final List<List<Offset?>> _sigDriverStrokes = [];
   final List<List<Offset?>> _sigPicStrokes = [];
   bool _scrollLocked = false;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchKendaraan();
+  }
+
+  Future<void> _fetchKendaraan() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('kendaraan')
+          .select('id, nomor_polisi, merek, model, odometer_sekarang')
+          .eq('aktif', true)
+          .order('nomor_polisi');
+      if (!mounted) return;
+      setState(() {
+        _daftarKendaraan = List<Map<String, dynamic>>.from(data);
+        _loadingKendaraan = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingKendaraan = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat daftar kendaraan: $e')),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -122,6 +155,13 @@ class _TambahPerjalananScreenState
       return;
     }
 
+    if (_kendaraanId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kendaraan wajib dipilih.')),
+      );
+      return;
+    }
+
     if (_sigDriverStrokes.isEmpty || _sigPicStrokes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tanda tangan driver dan PIC wajib diisi.')),
@@ -134,20 +174,26 @@ class _TambahPerjalananScreenState
       final odometerRaw = _odometerAkhirController.text.trim();
       final input = PerjalananInput(
         driverId: authUser.id,
+        kendaraanId: _kendaraanId!,
         tanggal: _tanggal,
         pic: _picController.text.trim(),
         namaKapal: _kapalController.text.trim(),
         waktuJemput: _combineDateTime(_tanggal, _waktuJemput),
-        waktuSampai: _combineDateTime(_tanggal, _waktuSampai),
+        waktuTiba: _combineDateTime(_tanggal, _waktuSampai),
         titikJemput: _titikJemputController.text.trim(),
         titikTujuan: _titikTujuanController.text.trim(),
         odometerAkhir:
             odometerRaw.isEmpty ? null : double.tryParse(odometerRaw),
         deskripsi: _deskripsiController.text.trim(),
-        dokumenLengkap: false,
       );
 
       await ref.read(tripRepositoryProvider).create(input);
+      if (input.odometerAkhir != null) {
+        await ref.read(tripRepositoryProvider).updateOdometerKendaraan(
+              _kendaraanId!,
+              input.odometerAkhir!,
+            );
+      }
       ref.invalidate(dashboardStatsProvider);
       ref.invalidate(perjalananTerbaruProvider);
 
@@ -219,6 +265,11 @@ class _TambahPerjalananScreenState
               _buildTanggal(),
               const SizedBox(height: 16),
 
+              // ── Kendaraan ─────────────────────────────────
+              _sectionLabel('Kendaraan'),
+              _buildKendaraanDropdown(),
+              const SizedBox(height: 16),
+
               // ── PIC ───────────────────────────────────────
               _sectionLabel('Person In Charge (PIC)'),
               _buildTextField(
@@ -287,10 +338,28 @@ class _TambahPerjalananScreenState
 
               // ── Odometer ──────────────────────────────────
               _sectionLabel('Odometer Akhir'),
+              if (_kendaraanOdometerSekarang != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'Odometer kendaraan saat ini: ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM',
+                    style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+                  ),
+                ),
               _buildTextField(
                 controller: _odometerAkhirController,
                 hint: 'KM akhir',
                 keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  final value = double.tryParse(v.trim());
+                  if (value == null) return 'Angka tidak valid';
+                  if (_kendaraanOdometerSekarang != null &&
+                      value < _kendaraanOdometerSekarang!) {
+                    return 'Tidak boleh kurang dari odometer saat ini (${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM)';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -438,6 +507,86 @@ class _TambahPerjalananScreenState
           ),
         ),
       );
+
+  Widget _buildKendaraanDropdown() {
+    if (_loadingKendaraan) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).inputDecorationTheme.fillColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Text('Memuat kendaraan...'),
+          ],
+        ),
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _kendaraanId,
+      isExpanded: true,
+      validator: (v) => v == null ? 'Wajib dipilih' : null,
+      style: AppTextColors.style(context, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Pilih kendaraan',
+        prefixIcon: const Icon(Icons.directions_car_outlined, size: 20),
+        filled: true,
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+            )),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+            )),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                const BorderSide(color: AppColors.primary, width: 1.5)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.cancelled)),
+      ),
+      items: _daftarKendaraan.map((k) {
+        final label = [
+          k['nomor_polisi'],
+          if (k['merek'] != null || k['model'] != null)
+            '(${[k['merek'], k['model']].where((e) => e != null && '$e'.isNotEmpty).join(' ')})',
+        ].where((e) => e != null && '$e'.isNotEmpty).join(' ');
+        return DropdownMenuItem<String>(
+          value: k['id'] as String,
+          child: Text(label, overflow: TextOverflow.ellipsis),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _kendaraanId = value;
+          final selected = _daftarKendaraan.firstWhere(
+            (k) => k['id'] == value,
+            orElse: () => {},
+          );
+          _kendaraanOdometerSekarang =
+              (selected['odometer_sekarang'] as num?)?.toDouble();
+        });
+      },
+    );
+  }
 
   Widget _buildTextField({
     required TextEditingController controller,

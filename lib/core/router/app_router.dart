@@ -12,6 +12,7 @@ import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/profil/presentation/profil_screen.dart';
 import '../../features/pengaturan/presentation/pengaturan_screen.dart';
 import '../../features/perjalanan/presentation/tambah_perjalanan_screen.dart';
+import '../../features/perjalanan/presentation/riwayat_perjalanan_screen.dart';
 import '../../features/kendaraan/presentation/kelola_kendaraan_screen.dart';
 import '../../features/kendaraan/presentation/tambah_kendaraan_screen.dart';
 import '../../features/driver/presentation/kelola_driver_screen.dart';
@@ -45,6 +46,14 @@ List<RouteBase> _shellRoutes() => [
         pageBuilder: (_, state) => _fadePage(
           key: state.pageKey,
           child: const TambahPerjalananScreen(),
+        ),
+      ),
+      GoRoute(
+        name: AppRoutes.riwayatPerjalananName,
+        path: AppRoutes.riwayatPerjalanan,
+        pageBuilder: (_, state) => _fadePage(
+          key: state.pageKey,
+          child: const RiwayatPerjalananScreen(),
         ),
       ),
       GoRoute(

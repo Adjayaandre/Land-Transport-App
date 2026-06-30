@@ -11,3 +11,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>(
 final perjalananTerbaruProvider = FutureProvider<List<PerjalananSingkat>>(
   (ref) => ref.read(_repo).fetchTerbaru(),
 );
+
+final kendaraanStatusProvider = FutureProvider<List<Map<String, dynamic>>>(
+  (ref) => ref.read(_repo).fetchKendaraanStatus(),
+);
