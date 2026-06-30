@@ -57,11 +57,26 @@ class PerjalananInput {
 class TripRepository {
   final _client = Supabase.instance.client;
 
-  Future<void> create(PerjalananInput input) async {
-    await _client.from('perjalanan').insert(input.toJson());
+  Future<String> create(PerjalananInput input) async {
+    final result = await _client
+        .from('perjalanan')
+        .insert(input.toJson())
+        .select('id')
+        .single();
+    return result['id'] as String;
   }
 
   /// Ambil semua perjalanan yang sudah selesai (ada tanda tangan), terbaru dulu.
+  /// Ambil satu perjalanan lengkap (untuk form edit) berdasarkan id.
+  Future<Map<String, dynamic>> fetchById(String id) async {
+    final data = await _client
+        .from('perjalanan')
+        .select()
+        .eq('id', id)
+        .single();
+    return Map<String, dynamic>.from(data);
+  }
+
   Future<List<Map<String, dynamic>>> fetchSemua() async {
     final data = await _client
         .from('ringkasan_perjalanan')
@@ -89,10 +104,14 @@ class TripRepository {
   }
 
   Future<void> updateOdometerKendaraan(String kendaraanId, double odometer) async {
-    await _client
+    final result = await _client
         .from('kendaraan')
         .update({'odometer_sekarang': odometer})
-        .eq('id', kendaraanId);
+        .eq('id', kendaraanId)
+        .select('id');
+    if ((result as List).isEmpty) {
+      throw Exception('Gagal update odometer kendaraan. Cek RLS policy tabel kendaraan.');
+    }
   }
 }
 
@@ -102,10 +121,11 @@ final tripRepositoryProvider = Provider<TripRepository>((ref) {
 
 /// Simpan perjalanan + refresh dashboard.
 final savePerjalananProvider =
-    Provider<Future<void> Function(PerjalananInput)>((ref) {
+    Provider<Future<String> Function(PerjalananInput)>((ref) {
   return (input) async {
-    await ref.read(tripRepositoryProvider).create(input);
+    final id = await ref.read(tripRepositoryProvider).create(input);
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(perjalananTerbaruProvider);
+    return id;
   };
 });

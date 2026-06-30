@@ -121,7 +121,12 @@ abstract class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.cancelled),
         ),
-        hintStyle: TextStyle(color: textMuted, fontSize: 14),
+        hintStyle: TextStyle(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.25)
+              : textMuted,
+          fontSize: 14,
+        ),
         labelStyle: TextStyle(color: textSecondary, fontSize: 14),
         prefixIconColor: textSecondary,
         suffixIconColor: textSecondary,

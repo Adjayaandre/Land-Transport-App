@@ -8,56 +8,193 @@ import '../../../shared/empty_state.dart';
 import '../domain/kendaraan_model.dart';
 import '../domain/kendaraan_provider.dart';
 
-class KelolaKendaraanScreen extends ConsumerWidget {
+class KelolaKendaraanScreen extends ConsumerStatefulWidget {
   const KelolaKendaraanScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KelolaKendaraanScreen> createState() =>
+      _KelolaKendaraanScreenState();
+}
+
+class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
+  final _searchController = TextEditingController();
+  bool? _filterAktif; // null = semua, true = available, false = unavailable
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final listAsync = ref.watch(kendaraanListProvider);
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Kelola Kendaraan'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => context.pushNamed(AppRoutes.tambahKendaraanName),
-            icon: const Icon(Icons.add_rounded, color: Colors.white),
-            label: const Text('Tambah', style: TextStyle(color: Colors.white)),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
-      body: listAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text(
-            'Gagal memuat data kendaraan',
-            style: AppTextColors.style(context),
-          ),
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return EmptyState(
-              icon: Icons.directions_car_outlined,
-              message: 'Belum ada kendaraan.\nTap Tambah untuk menambahkan.',
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(kendaraanListProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) =>
-                  _KendaraanCard(item: items[index]),
+      body: Column(
+        children: [
+          // ── Search + Filter + Tambah ───────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              children: [
+                // Search
+                TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _query = v.toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'Cari kendaraan...',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            color: Theme.of(context).dividerTheme.color ??
+                                AppColors.border)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 1.5)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    // Filter dropdown
+                    OutlinedButton.icon(
+                      onPressed: () => _showFilterSheet(context),
+                      icon: const Icon(Icons.filter_list_rounded, size: 16),
+                      label: Text(_filterAktif == null
+                          ? 'Filter'
+                          : _filterAktif!
+                              ? 'Available'
+                              : 'Unavailable'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        side: BorderSide(
+                            color: _filterAktif != null
+                                ? AppColors.primary
+                                : Theme.of(context).dividerTheme.color ??
+                                    AppColors.border),
+                        foregroundColor: _filterAktif != null
+                            ? AppColors.primary
+                            : context.adaptiveTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => context
+                            .pushNamed(AppRoutes.tambahKendaraanName),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Tambah Kendaraan'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 42),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 12),
+
+          // ── List ──────────────────────────────────────────
+          Expanded(
+            child: listAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text('Gagal memuat data kendaraan',
+                    style: AppTextColors.style(context)),
+              ),
+              data: (items) {
+                final filtered = items.where((k) {
+                  final matchQuery = _query.isEmpty ||
+                      k.nomorPlat.toLowerCase().contains(_query) ||
+                      k.merek.toLowerCase().contains(_query) ||
+                      k.model.toLowerCase().contains(_query);
+                  final matchFilter =
+                      _filterAktif == null || k.aktif == _filterAktif;
+                  return matchQuery && matchFilter;
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.directions_car_outlined,
+                    message: items.isEmpty
+                        ? 'Belum ada kendaraan.\nTap Tambah untuk menambahkan.'
+                        : 'Tidak ada kendaraan yang sesuai filter.',
+                  );
+                }
+
+                return RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () async =>
+                      ref.invalidate(kendaraanListProvider),
+                  child: ListView.separated(
+                    padding:
+                        const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: 10),
+                    itemBuilder: (context, index) =>
+                        _KendaraanCard(item: filtered[index]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  void _showFilterSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Filter Status',
+                style: AppTextColors.style(context,
+                    fontSize: 15, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            _filterTile('Semua', null),
+            _filterTile('Available', true),
+            _filterTile('Unavailable', false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filterTile(String label, bool? value) => ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(label),
+        trailing: _filterAktif == value
+            ? const Icon(Icons.check_rounded, color: AppColors.primary)
+            : null,
+        onTap: () {
+          setState(() => _filterAktif = value);
+          Navigator.pop(context);
+        },
+      );
 }
 
 class _KendaraanCard extends ConsumerWidget {
@@ -72,11 +209,13 @@ class _KendaraanCard extends ConsumerWidget {
         content: Text('Hapus ${item.nomorPlat} dari daftar?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context, rootNavigator: true).pop(false),
+            onPressed: () =>
+                Navigator.of(context, rootNavigator: true).pop(false),
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+            onPressed: () =>
+                Navigator.of(context, rootNavigator: true).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.cancelled,
               foregroundColor: Colors.white,
@@ -101,66 +240,117 @@ class _KendaraanCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final aktif = item.aktif;
+    final statusColor = aktif ? AppColors.completed : const Color(0xFFF59E0B);
+    final statusBg = aktif
+        ? AppColors.completed.withValues(alpha: 0.12)
+        : const Color(0xFFF59E0B).withValues(alpha: 0.12);
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: aktif
+            ? (Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1B4332)
+                : const Color(0xFFE8F5E9))
+            : (Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF4A3B0F)
+                : const Color(0xFFFEF3C7)),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          color: aktif
+              ? AppColors.completed.withValues(alpha: 0.4)
+              : const Color(0xFFF59E0B).withValues(alpha: 0.4),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header: ikon + nomor pol + edit/hapus
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.directions_car_rounded,
+                    color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'No. Pol: ${item.nomorPlat}',
+                  style: AppTextColors.style(context,
+                      fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Edit',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => context.pushNamed(
+                  AppRoutes.tambahKendaraanName,
+                  queryParameters: {'id': item.id},
+                ),
+                icon: Icon(Icons.edit_outlined,
+                    color: context.adaptiveTextSecondary, size: 20),
+              ),
+              IconButton(
+                tooltip: 'Hapus',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _confirmDelete(context, ref),
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: AppColors.cancelled, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Info rows
+          _infoRow(context, '${item.merek} ${item.model}'),
+          const SizedBox(height: 4),
+          if (item.warna != null && item.warna!.isNotEmpty)
+            _infoRow(context, 'Warna: ${item.warna}'),
+          const SizedBox(height: 4),
+          _infoRow(
+            context,
+            'Odometer Sekarang: ${item.odometerSekarang.toStringAsFixed(0)} KM',
+          ),
+          const SizedBox(height: 12),
+
+          // Status badge
           Container(
-            width: 44,
-            height: 44,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+              color: statusBg,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.directions_car_rounded, color: AppColors.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.nomorPlat,
-                  style: AppTextColors.style(
-                    context,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+            child: Center(
+              child: Text(
+                aktif ? 'TERSEDIA' : 'TIDAK TERSEDIA',
+                style: AppTextColors.style(
+                  context,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: statusColor,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${item.merk} ${item.model} · ${item.tahun}',
-                  style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveTextSecondary),
-                ),
-                Text(
-                  item.tipe,
-                  style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextMuted),
-                ),
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Edit',
-            onPressed: () => context.pushNamed(
-              AppRoutes.tambahKendaraanName,
-              queryParameters: {'id': item.id},
-            ),
-            icon: Icon(Icons.edit_outlined, color: context.adaptiveTextSecondary),
-          ),
-          IconButton(
-            tooltip: 'Hapus',
-            onPressed: () => _confirmDelete(context, ref),
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.cancelled),
           ),
         ],
       ),
     );
   }
+
+  Widget _infoRow(BuildContext context, String text) => Text(
+        text,
+        style: AppTextColors.style(
+          context,
+          fontSize: 13,
+          color: context.adaptiveTextSecondary,
+        ),
+      );
 }

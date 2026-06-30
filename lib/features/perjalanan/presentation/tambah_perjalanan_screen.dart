@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -144,6 +146,76 @@ class _TambahPerjalananScreenState
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
+  /// Render strokes ke PNG bytes (400×200 px, background putih, tinta navy).
+  Future<Uint8List> _renderSignaturePng(List<List<Offset?>> strokes) async {
+    const w = 400.0;
+    const h = 200.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, w, h));
+
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, w, h),
+      Paint()..color = Colors.white,
+    );
+
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    for (final stroke in strokes) {
+      final path = Path();
+      var started = false;
+      for (final point in stroke) {
+        if (point == null) {
+          started = false;
+        } else if (!started) {
+          path.moveTo(point.dx, point.dy);
+          started = true;
+        } else {
+          path.lineTo(point.dx, point.dy);
+        }
+      }
+      canvas.drawPath(path, paint);
+    }
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(w.toInt(), h.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  /// Upload tanda tangan ke Storage dan insert ke tabel tanda_tangan.
+  Future<void> _saveTandaTangan({
+    required String perjalananId,
+    required String jenis, // 'driver' atau 'pic'
+    required List<List<Offset?>> strokes,
+    required String namaPenanda,
+  }) async {
+    const bucket = 'tanda-tangan';
+    final bytes = await _renderSignaturePng(strokes);
+    final path = '$perjalananId/$jenis-${DateTime.now().millisecondsSinceEpoch}.png';
+
+    await Supabase.instance.client.storage.from(bucket).uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(contentType: 'image/png', upsert: true),
+        );
+
+    final url = Supabase.instance.client.storage.from(bucket).getPublicUrl(path);
+
+    await Supabase.instance.client.from('tanda_tangan').insert({
+      'id_perjalanan': perjalananId,
+      'jenis': jenis,
+      'url_file': url,
+      'path_file': path,
+      'nama_penanda': namaPenanda,
+      'ditanda_pada': DateTime.now().toIso8601String(),
+    });
+  }
+
   Future<void> _simpan() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -187,7 +259,22 @@ class _TambahPerjalananScreenState
         deskripsi: _deskripsiController.text.trim(),
       );
 
-      await ref.read(tripRepositoryProvider).create(input);
+      final perjalananId = await ref.read(tripRepositoryProvider).create(input);
+
+      // Simpan tanda tangan driver dan PIC ke Storage + tabel
+      await _saveTandaTangan(
+        perjalananId: perjalananId,
+        jenis: 'driver',
+        strokes: _sigDriverStrokes,
+        namaPenanda: authUser.name,
+      );
+      await _saveTandaTangan(
+        perjalananId: perjalananId,
+        jenis: 'pic',
+        strokes: _sigPicStrokes,
+        namaPenanda: _picController.text.trim(),
+      );
+
       if (input.odometerAkhir != null) {
         await ref.read(tripRepositoryProvider).updateOdometerKendaraan(
               _kendaraanId!,
@@ -564,14 +651,25 @@ class _TambahPerjalananScreenState
             borderSide: const BorderSide(color: AppColors.cancelled)),
       ),
       items: _daftarKendaraan.map((k) {
+        final aktif = k['aktif'] as bool? ?? true;
+        final warna = k['warna'] as String?;
         final label = [
           k['nomor_polisi'],
-          if (k['merek'] != null || k['model'] != null)
-            '(${[k['merek'], k['model']].where((e) => e != null && '$e'.isNotEmpty).join(' ')})',
+          '(${[k['merek'], k['model']].where((e) => e != null && '$e'.isNotEmpty).join(' ')})',
+          if (warna != null && warna.isNotEmpty) '· $warna',
         ].where((e) => e != null && '$e'.isNotEmpty).join(' ');
+        final dotColor = aktif ? AppColors.completed : const Color(0xFFF59E0B);
         return DropdownMenuItem<String>(
           value: k['id'] as String,
-          child: Text(label, overflow: TextOverflow.ellipsis),
+          child: Row(children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label, overflow: TextOverflow.ellipsis)),
+          ]),
         );
       }).toList(),
       onChanged: (value) {
@@ -601,6 +699,9 @@ class _TambahPerjalananScreenState
         keyboardType: keyboardType,
         maxLines: maxLines,
         validator: validator,
+        textCapitalization: keyboardType == TextInputType.number
+            ? TextCapitalization.none
+            : TextCapitalization.characters,
         style: AppTextColors.style(context, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,

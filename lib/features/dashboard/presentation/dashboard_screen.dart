@@ -321,7 +321,7 @@ class _KendaraanStatusCard extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              aktif ? 'Aktif' : 'Tidak Aktif',
+              aktif ? 'Tersedia' : 'Tidak Tersedia',
               style: AppTextColors.style(
                 context,
                 fontSize: 11,
