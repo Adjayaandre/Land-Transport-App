@@ -29,6 +29,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
   bool _obscureKonfirmasi = true;
   bool _isSaving = false;
   bool _loaded = false;
+  String _selectedPeran = 'driver';
 
   bool get _isEdit => widget.driverId != null;
 
@@ -44,6 +45,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
   void _fillForm(DriverModel item) {
     _namaController.text = item.nama;
     _emailController.text = item.email;
+    _selectedPeran = item.peran;
   }
 
   void _hapusIsian() {
@@ -65,6 +67,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
           id: widget.driverId!,
           nama: _namaController.text.trim(),
           email: _emailController.text.trim(),
+          peran: _selectedPeran,
         );
       } else {
         await repo.create(
@@ -123,7 +126,8 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
     if (lower.contains('forbidden') || lower.contains('superadmin')) {
       return 'Hanya superadmin yang dapat menambah driver.';
     }
-    if (lower.contains('migrasi sql') || lower.contains('profil driver gagal')) {
+    if (lower.contains('migrasi sql') ||
+        lower.contains('profil driver gagal')) {
       return message;
     }
     return message;
@@ -242,6 +246,9 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 14),
+                    _label('Role / Jabatan'),
+                    _buildRolePicker(),
                     if (!_isEdit) ...[
                       const SizedBox(height: 14),
                       _label('Password'),
@@ -335,7 +342,9 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(_isEdit ? 'Simpan Perubahan' : 'Buat Akun Driver'),
+                          : Text(_isEdit
+                              ? 'Simpan Perubahan'
+                              : 'Buat Akun Driver'),
                     ),
                   ),
                 ],
@@ -344,6 +353,64 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  static const _roles = [
+    ('driver', 'Driver', Icons.drive_eta_rounded, Color(0xFF1E3A8A)),
+    ('karyawan', 'Karyawan', Icons.badge_outlined, Color(0xFF059669)),
+    ('admin', 'Admin', Icons.admin_panel_settings_outlined, Color(0xFF2563EB)),
+    (
+      'supervisor',
+      'Supervisor',
+      Icons.supervisor_account_outlined,
+      Color(0xFF0891B2)
+    ),
+    ('superadmin', 'Super Admin', Icons.security_rounded, Color(0xFF7C3AED)),
+  ];
+
+  Widget _buildRolePicker() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _roles.map((r) {
+        final (value, label, icon, color) = r;
+        final selected = _selectedPeran == value;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedPeran = value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: selected
+                  ? color.withValues(alpha: 0.12)
+                  : Theme.of(context).inputDecorationTheme.fillColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected
+                    ? color
+                    : (Theme.of(context).dividerTheme.color ??
+                        AppColors.border),
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(icon,
+                  size: 16,
+                  color: selected ? color : context.adaptiveTextSecondary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTextColors.style(
+                  context,
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? color : context.adaptiveTextSecondary,
+                ),
+              ),
+            ]),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -405,8 +472,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 1.5),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),

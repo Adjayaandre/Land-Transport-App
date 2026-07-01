@@ -15,6 +15,8 @@ class PerjalananInput {
   final double? odometerAkhir;
   final String? deskripsi;
 
+  final String? idKlip;
+
   const PerjalananInput({
     required this.driverId,
     required this.kendaraanId,
@@ -27,6 +29,7 @@ class PerjalananInput {
     required this.titikTujuan,
     this.odometerAkhir,
     this.deskripsi,
+    this.idKlip,
   });
 
   Map<String, dynamic> toJson() {
@@ -44,6 +47,7 @@ class PerjalananInput {
       if (odometerAkhir != null) 'odometer_akhir': odometerAkhir,
       if (deskripsi != null && deskripsi!.trim().isNotEmpty)
         'deskripsi': deskripsi!.trim(),
+      if (idKlip != null) 'id_klip': idKlip,
     };
   }
 

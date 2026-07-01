@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
@@ -10,6 +11,8 @@ import '../../../core/theme/app_text_colors.dart';
 import '../../../shared/signature_pad.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../data/perjalanan_repository.dart';
+import '../data/klip_repository.dart';
+import '../domain/klip_provider.dart';
 import '../../dashboard/domain/dashboard_provider.dart';
 
 class TambahPerjalananScreen extends ConsumerStatefulWidget {
@@ -42,6 +45,10 @@ class _TambahPerjalananScreenState
   String? _kendaraanId;
   double? _kendaraanOdometerSekarang;
   bool _loadingKendaraan = true;
+
+  // Klip
+  String? _klipAktifId;
+  bool _loadingKlip = false;
 
   // Signature
   final List<List<Offset?>> _sigDriverStrokes = [];
@@ -147,6 +154,221 @@ class _TambahPerjalananScreenState
   }
 
   /// Render strokes ke PNG bytes (400×200 px, background putih, tinta navy).
+  Future<void> _fetchKlipAktif(String kendaraanId) async {
+    setState(() => _loadingKlip = true);
+    try {
+      final klip = await ref
+          .read(klipRepositoryProvider)
+          .getKlipAktif(kendaraanId);
+      if (mounted) setState(() => _klipAktifId = klip?.id);
+    } finally {
+      if (mounted) setState(() => _loadingKlip = false);
+    }
+  }
+
+  Future<void> _handleBuatKlipBaru() async {
+    final authUser = ref.read(authProvider).user;
+    if (authUser == null || _kendaraanId == null) return;
+
+    // Kalau ada klip aktif, tutup dulu
+    if (_klipAktifId != null) {
+      final ditutup = await _showTutupKlipDialog();
+      if (!ditutup) return;
+    }
+
+    // Konfirmasi buat klip baru
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Buat Klip Baru'),
+        content: const Text(
+          'Apakah anda yakin ingin membuat klip perjalanan baru?\n\n'
+          'Klip baru akan dimulai saat ini.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(true),
+            child: const Text('Buat Klip Baru'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      final klip = await ref.read(klipRepositoryProvider).buatKlipBaru(
+            idKendaraan: _kendaraanId!,
+            dibuatOleh: authUser.id,
+          );
+      if (mounted) setState(() => _klipAktifId = klip.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Klip perjalanan baru berhasil dibuat')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuat klip: $e')),
+        );
+      }
+    }
+  }
+
+  Future<bool> _showTutupKlipDialog() async {
+    Uint8List? fotoBytes;
+    final odometerCtrl = TextEditingController(
+      text: _kendaraanOdometerSekarang?.toStringAsFixed(0) ?? '',
+    );
+    bool uploading = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Tutup Klip Saat Ini'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sebelum membuat klip baru, tutup klip aktif dengan mengisi data berikut:',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                const Text('Odometer Terakhir (KM)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: odometerCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Masukkan odometer',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Foto Nota Bensin',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final picked = await picker.pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 75,
+                    );
+                    if (picked != null) {
+                      final bytes = await picked.readAsBytes();
+                      setDialogState(() => fotoBytes = bytes);
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: fotoBytes != null
+                          ? Colors.transparent
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: fotoBytes != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(fotoBytes!, fit: BoxFit.cover),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.camera_alt_outlined,
+                                  size: 32, color: Colors.grey),
+                              SizedBox(height: 6),
+                              Text('Foto nota bensin',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: uploading
+                  ? null
+                  : () => Navigator.of(ctx, rootNavigator: true).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: uploading
+                  ? null
+                  : () async {
+                      final odometer =
+                          double.tryParse(odometerCtrl.text.trim());
+                      if (odometer == null) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                              content: Text('Odometer wajib diisi')),
+                        );
+                        return;
+                      }
+                      if (fotoBytes == null) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                              content: Text('Foto nota bensin wajib diambil')),
+                        );
+                        return;
+                      }
+                      setDialogState(() => uploading = true);
+                      try {
+                        await ref
+                            .read(klipRepositoryProvider)
+                            .tutupKlip(
+                              klipId: _klipAktifId!,
+                              odometerTutup: odometer,
+                              fotoNotaBytes: fotoBytes!,
+                            );
+                        if (ctx.mounted) {
+                          Navigator.of(ctx, rootNavigator: true).pop(true);
+                        }
+                      } catch (e) {
+                        setDialogState(() => uploading = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text('Gagal menutup klip: $e')),
+                          );
+                        }
+                      }
+                    },
+              child: uploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Tutup Klip'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return result == true;
+  }
+
   Future<Uint8List> _renderSignaturePng(List<List<Offset?>> strokes) async {
     const w = 400.0;
     const h = 200.0;
@@ -234,6 +456,14 @@ class _TambahPerjalananScreenState
       return;
     }
 
+    if (_klipAktifId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Buat klip perjalanan terlebih dahulu.')),
+      );
+      return;
+    }
+
     if (_sigDriverStrokes.isEmpty || _sigPicStrokes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tanda tangan driver dan PIC wajib diisi.')),
@@ -257,6 +487,7 @@ class _TambahPerjalananScreenState
         odometerAkhir:
             odometerRaw.isEmpty ? null : double.tryParse(odometerRaw),
         deskripsi: _deskripsiController.text.trim(),
+        idKlip: _klipAktifId,
       );
 
       final perjalananId = await ref.read(tripRepositoryProvider).create(input);
@@ -355,6 +586,10 @@ class _TambahPerjalananScreenState
               // ── Kendaraan ─────────────────────────────────
               _sectionLabel('Kendaraan'),
               _buildKendaraanDropdown(),
+              if (_kendaraanId != null) ...[
+                const SizedBox(height: 10),
+                _buildKlipStatus(),
+              ],
               const SizedBox(height: 16),
 
               // ── PIC ───────────────────────────────────────
@@ -595,6 +830,83 @@ class _TambahPerjalananScreenState
         ),
       );
 
+  Widget _buildKlipStatus() {
+    if (_loadingKlip) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).inputDecorationTheme.fillColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border),
+        ),
+        child: const Row(children: [
+          SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2)),
+          SizedBox(width: 10),
+          Text('Memeriksa klip...', style: TextStyle(fontSize: 13)),
+        ]),
+      );
+    }
+
+    final hasKlip = _klipAktifId != null;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasKlip
+            ? AppColors.completed.withValues(alpha: 0.08)
+            : AppColors.cancelled.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: hasKlip
+              ? AppColors.completed.withValues(alpha: 0.4)
+              : AppColors.cancelled.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(children: [
+        Icon(
+          hasKlip ? Icons.folder_open_rounded : Icons.folder_off_outlined,
+          size: 18,
+          color: hasKlip ? AppColors.completed : AppColors.cancelled,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            hasKlip
+                ? 'Klip perjalanan aktif'
+                : 'Belum ada klip aktif untuk kendaraan ini',
+            style: AppTextColors.style(
+              context,
+              fontSize: 13,
+              color: hasKlip ? AppColors.completed : AppColors.cancelled,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: _handleBuatKlipBaru,
+          style: TextButton.styleFrom(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            hasKlip ? 'Klip Baru' : 'Buat Klip',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: hasKlip ? AppColors.primary : AppColors.cancelled,
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _buildKendaraanDropdown() {
     if (_loadingKendaraan) {
       return Container(
@@ -672,9 +984,10 @@ class _TambahPerjalananScreenState
           ]),
         );
       }).toList(),
-      onChanged: (value) {
+      onChanged: (value) async {
         setState(() {
           _kendaraanId = value;
+          _klipAktifId = null;
           final selected = _daftarKendaraan.firstWhere(
             (k) => k['id'] == value,
             orElse: () => {},
@@ -682,6 +995,7 @@ class _TambahPerjalananScreenState
           _kendaraanOdometerSekarang =
               (selected['odometer_sekarang'] as num?)?.toDouble();
         });
+        if (value != null) await _fetchKlipAktif(value);
       },
     );
   }

@@ -38,16 +38,17 @@ class DriverRepository {
     final emailCache = await _loadEmailCache();
     final data = await _client
         .from('pengguna')
-        .select('id, nama_lengkap, peran')
-        .eq('peran', 'driver')
+        .select('id, nama_lengkap, peran, aktif')
         .order('nama_lengkap');
 
     return (data as List).map((row) {
       final id = row['id'] as String;
       return DriverModel(
-        id: id,
-        nama: (row['nama_lengkap'] as String?) ?? '-',
+        id:    id,
+        nama:  (row['nama_lengkap'] as String?) ?? '-',
         email: emailCache[id] ?? '',
+        peran: (row['peran'] as String?) ?? 'driver',
+        aktif: (row['aktif'] as bool?) ?? true,
       );
     }).toList();
   }
@@ -55,18 +56,19 @@ class DriverRepository {
   Future<DriverModel?> getById(String id) async {
     final data = await _client
         .from('pengguna')
-        .select('id, nama_lengkap, peran')
+        .select('id, nama_lengkap, peran, aktif')
         .eq('id', id)
-        .eq('peran', 'driver')
         .maybeSingle();
 
     if (data == null) return null;
 
     final emailCache = await _loadEmailCache();
     return DriverModel(
-      id: data['id'] as String,
-      nama: (data['nama_lengkap'] as String?) ?? '-',
+      id:    data['id'] as String,
+      nama:  (data['nama_lengkap'] as String?) ?? '-',
       email: emailCache[id] ?? '',
+      peran: (data['peran'] as String?) ?? 'driver',
+      aktif: (data['aktif'] as bool?) ?? true,
     );
   }
 
@@ -178,9 +180,11 @@ class DriverRepository {
 
     await _cacheEmail(id, email);
     return DriverModel(
-      id: id,
-      nama: (data['nama'] as String?) ?? nama,
+      id:    id,
+      nama:  (data['nama'] as String?) ?? nama,
       email: (data['email'] as String?) ?? email,
+      peran: 'driver',
+      aktif: true,
     );
   }
 
@@ -239,7 +243,7 @@ class DriverRepository {
     await _ensurePenggunaProfile(userId: user.id, nama: nama);
     await _cacheEmail(user.id, email);
 
-    return DriverModel(id: user.id, nama: nama, email: email);
+    return DriverModel(id: user.id, nama: nama, email: email, peran: 'driver', aktif: true);
   }
 
   Future<void> _ensurePenggunaProfile({
@@ -286,17 +290,27 @@ class DriverRepository {
     required String id,
     required String nama,
     required String email,
+    String peran = 'driver',
+    bool aktif = true,
   }) async {
     await _client.from('pengguna').update({
       'nama_lengkap': nama,
-    }).eq('id', id).eq('peran', 'driver');
+      'peran': peran,
+      'aktif': aktif,
+    }).eq('id', id);
 
     await _cacheEmail(id, email.trim().toLowerCase());
-    return DriverModel(id: id, nama: nama, email: email.trim().toLowerCase());
+    return DriverModel(
+      id:    id,
+      nama:  nama,
+      email: email.trim().toLowerCase(),
+      peran: peran,
+      aktif: aktif,
+    );
   }
 
   Future<void> delete(String id) async {
-    await _client.from('pengguna').delete().eq('id', id).eq('peran', 'driver');
+    await _client.from('pengguna').delete().eq('id', id);
     await _removeCachedEmail(id);
   }
 }
