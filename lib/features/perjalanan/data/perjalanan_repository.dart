@@ -89,6 +89,39 @@ class TripRepository {
     return List<Map<String, dynamic>>.from(data as List);
   }
 
+  /// Fetch semua klip beserta perjalanannya, diurutkan terbaru dulu.
+  Future<List<Map<String, dynamic>>> fetchKlipDenganPerjalanan() async {
+    // Ambil semua klip dengan info kendaraan
+    final klips = await _client
+        .from('klip_perjalanan')
+        .select('id, id_kendaraan, status, dibuat_pada, ditutup_pada, odometer_tutup, kendaraan(nomor_polisi, merek, model)')
+        .order('dibuat_pada', ascending: false);
+
+    // Ambil semua perjalanan dengan id_klip
+    final perjalanan = await _client
+        .from('ringkasan_perjalanan')
+        .select()
+        .order('dibuat_pada', ascending: false);
+
+    // Group perjalanan by id_klip
+    final Map<String, List<Map<String, dynamic>>> perjalananPerKlip = {};
+    for (final p in perjalanan as List) {
+      final idKlip = p['id_klip'] as String?;
+      if (idKlip != null) {
+        perjalananPerKlip.putIfAbsent(idKlip, () => []).add(p);
+      }
+    }
+
+    // Gabungkan
+    return (klips as List).map((k) {
+      final id = k['id'] as String;
+      return {
+        ...Map<String, dynamic>.from(k),
+        'perjalanan': perjalananPerKlip[id] ?? [],
+      };
+    }).toList();
+  }
+
   Future<void> update(String id, Map<String, dynamic> data) async {
     final result =
         await _client.from('perjalanan').update(data).eq('id', id).select();

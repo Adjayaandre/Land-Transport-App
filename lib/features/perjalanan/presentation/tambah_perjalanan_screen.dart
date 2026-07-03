@@ -3,15 +3,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../../shared/signature_pad.dart';
+import '../../../shared/foto_picker.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../data/perjalanan_repository.dart';
-import '../data/klip_repository.dart';
 import '../domain/klip_provider.dart';
 import '../../dashboard/domain/dashboard_provider.dart';
 
@@ -223,7 +222,8 @@ class _TambahPerjalananScreenState
   }
 
   Future<bool> _showTutupKlipDialog() async {
-    Uint8List? fotoBytes;
+    Uint8List? fotoNotaBytes;
+    Uint8List? fotoOdometerBytes;
     final odometerCtrl = TextEditingController(
       text: _kendaraanOdometerSekarang?.toStringAsFixed(0) ?? '',
     );
@@ -259,48 +259,29 @@ class _TambahPerjalananScreenState
                   ),
                 ),
                 const SizedBox(height: 16),
+                const Text('Foto Odometer',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                FotoPicker(
+                  fotoBytes: fotoOdometerBytes,
+                  label: 'Foto panel odometer',
+                  icon: Icons.speed_rounded,
+                  onFotoSelected: (b) =>
+                      setDialogState(() => fotoOdometerBytes = b),
+                  onHapus: () =>
+                      setDialogState(() => fotoOdometerBytes = null),
+                ),
+                const SizedBox(height: 16),
                 const Text('Foto Nota Bensin',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () async {
-                    final picker = ImagePicker();
-                    final picked = await picker.pickImage(
-                      source: ImageSource.camera,
-                      imageQuality: 75,
-                    );
-                    if (picked != null) {
-                      final bytes = await picked.readAsBytes();
-                      setDialogState(() => fotoBytes = bytes);
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: fotoBytes != null
-                          ? Colors.transparent
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: fotoBytes != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(fotoBytes!, fit: BoxFit.cover),
-                          )
-                        : const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.camera_alt_outlined,
-                                  size: 32, color: Colors.grey),
-                              SizedBox(height: 6),
-                              Text('Foto nota bensin',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                  ),
+                FotoPicker(
+                  fotoBytes: fotoNotaBytes,
+                  label: 'Foto nota pembelian bensin',
+                  icon: Icons.receipt_long_outlined,
+                  onFotoSelected: (b) =>
+                      setDialogState(() => fotoNotaBytes = b),
+                  onHapus: () => setDialogState(() => fotoNotaBytes = null),
                 ),
               ],
             ),
@@ -319,27 +300,27 @@ class _TambahPerjalananScreenState
                       final odometer =
                           double.tryParse(odometerCtrl.text.trim());
                       if (odometer == null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(
-                              content: Text('Odometer wajib diisi')),
-                        );
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                            content: Text('Odometer wajib diisi')));
                         return;
                       }
-                      if (fotoBytes == null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(
-                              content: Text('Foto nota bensin wajib diambil')),
-                        );
+                      if (fotoOdometerBytes == null) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                            content: Text('Foto odometer wajib diambil')));
+                        return;
+                      }
+                      if (fotoNotaBytes == null) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                            content: Text('Foto nota bensin wajib diambil')));
                         return;
                       }
                       setDialogState(() => uploading = true);
                       try {
-                        await ref
-                            .read(klipRepositoryProvider)
-                            .tutupKlip(
+                        await ref.read(klipRepositoryProvider).tutupKlip(
                               klipId: _klipAktifId!,
                               odometerTutup: odometer,
-                              fotoNotaBytes: fotoBytes!,
+                              fotoNotaBytes: fotoNotaBytes!,
+                              fotoOdometerBytes: fotoOdometerBytes!,
                             );
                         if (ctx.mounted) {
                           Navigator.of(ctx, rootNavigator: true).pop(true);

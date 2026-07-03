@@ -32,29 +32,42 @@ class KlipRepository {
     return KlipPerjalanan.fromJson(result);
   }
 
-  /// Tutup klip aktif — upload foto nota ke Storage lalu update record.
+  /// Tutup klip aktif — upload foto odometer + foto nota ke Storage lalu update record.
   Future<void> tutupKlip({
     required String klipId,
     required double odometerTutup,
     required Uint8List fotoNotaBytes,
+    required Uint8List fotoOdometerBytes,
   }) async {
     const bucket = 'foto-perjalanan';
-    final path = 'nota-bensin/$klipId-${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ts = DateTime.now().millisecondsSinceEpoch;
 
+    // Upload foto nota bensin
+    final pathNota = 'nota-bensin/$klipId-$ts.jpg';
     await _db.storage.from(bucket).uploadBinary(
-          path,
+          pathNota,
           fotoNotaBytes,
           fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
         );
+    final urlNota = _db.storage.from(bucket).getPublicUrl(pathNota);
 
-    final url = _db.storage.from(bucket).getPublicUrl(path);
+    // Upload foto odometer
+    final pathOdometer = 'odometer/$klipId-$ts.jpg';
+    await _db.storage.from(bucket).uploadBinary(
+          pathOdometer,
+          fotoOdometerBytes,
+          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+        );
+    final urlOdometer = _db.storage.from(bucket).getPublicUrl(pathOdometer);
 
     await _db.from('klip_perjalanan').update({
-      'status':         'tutup',
-      'odometer_tutup': odometerTutup,
-      'foto_nota_url':  url,
-      'foto_nota_path': path,
-      'ditutup_pada':   DateTime.now().toIso8601String(),
+      'status':           'tutup',
+      'odometer_tutup':   odometerTutup,
+      'foto_nota_url':    urlNota,
+      'foto_nota_path':   pathNota,
+      'foto_odometer_url':  urlOdometer,
+      'foto_odometer_path': pathOdometer,
+      'ditutup_pada':     DateTime.now().toIso8601String(),
     }).eq('id', klipId);
   }
 }

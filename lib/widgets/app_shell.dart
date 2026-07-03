@@ -1,14 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/domain/auth_provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
 
+// Route-route yang dianggap "root" — tidak ada halaman sebelumnya di stack
+const _rootRoutes = {
+  AppRoutes.dashboard,
+  AppRoutes.kelolaKendaraan,
+  AppRoutes.kelolaDriver,
+  AppRoutes.profil,
+};
+
 class AppShell extends ConsumerWidget {
   final Widget child;
   final String currentPath;
   const AppShell({super.key, required this.child, required this.currentPath});
+
+  Future<bool> _onWillPop(BuildContext context) async {
+    // Hanya intercept jika di root route
+    if (!_rootRoutes.contains(currentPath)) return true;
+
+    final keluar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Keluar Aplikasi'),
+        content: const Text('Apakah anda yakin ingin keluar dari aplikasi?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.cancelled,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+
+    if (keluar == true) {
+      SystemNavigator.pop();
+    }
+    return false; // selalu false, keluar dihandle manual
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,7 +59,13 @@ class AppShell extends ConsumerWidget {
     final isSuperadmin = role == 'superadmin';
     final hideFab = currentPath == AppRoutes.tambahPerjalanan;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _onWillPop(context);
+      },
+      child: Scaffold(
       body: child,
       floatingActionButton: hideFab
           ? const SizedBox(width: 56, height: 56)
@@ -33,6 +81,7 @@ class AppShell extends ConsumerWidget {
       bottomNavigationBar: isSuperadmin
           ? _SuperadminNav(currentPath: currentPath)
           : _DefaultNav(currentPath: currentPath),
+      ),
     );
   }
 }

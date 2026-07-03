@@ -2,21 +2,21 @@ Land Transport App (Bahasa Indonesia)
 
 Fitur:
 1. Mencatat data kegiatan: 
-	- Tanggal kegiatan (bisa pilih dan defaultnya tanggal kegiatan itu dibuat)
-	- Person In Charge (PIC) menjadi dropdown
-	- Kapal yang dilayani (tidak wajib isi) 
-	- Waktu jemput
-	- Titik Jemput
-	- Waktu sampai
-	- Titik Tujuan
-	- Deskripsi kegiatan
-	- Odometer (otomatis lanjutan dari kegiatan sebelumnya)
-	- tanda tangan driver dan PIC
+	- Tanggal kegiatan (bisa pilih dan defaultnya tanggal kegiatan itu dibuat) *
+	- Person In Charge (PIC) *
+	- Kapal yang dilayani (tidak wajib isi) *
+	- Waktu jemput *
+	- Titik Jemput *
+	- Waktu sampai *
+	- Titik Tujuan *
+	- Deskripsi kegiatan *
+	- Odometer (otomatis lanjutan dari kegiatan sebelumnya) *
+	- tanda tangan driver dan PIC *
 
 2. Pengelompokan kegiatan sesuai bensin
-	- setiap isi bensin, pengguna harus menutup laporan dan ada fitur wajib melampirkan 2 foto, untuk odometer terakhir dan nota isi bensin
+	- setiap isi bensin, pengguna harus menutup laporan dan ada fitur wajib melampirkan 2 foto, untuk odometer terakhir dan nota isi bensin *
 	- setelah menutup kelompok kegiatan, pengguna wajib membuat kelompok kegiatan baru
 	
 3. generate PDF dan Excel
-	- generate ke PDF dari setiap pengolompokan kegiatan, setiap kegiatan menjadi satu halaman, jadi nanti setiap satu kelompok kegiatan berisi beberapa halaman PDF 	yang berisi kegiatan
+	- generate ke PDF dari setiap pengolompokan kegiatan, setiap kegiatan menjadi satu halaman, jadi nanti setiap satu kelompok kegiatan berisi beberapa halaman PDF 	yang berisi kegiatan 
 	- generate ke Excel dari seluruh data yang sudah difilter dari tanggal sekian hingga sekian

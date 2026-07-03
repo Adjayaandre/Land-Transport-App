@@ -358,14 +358,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
 
   static const _roles = [
     ('driver', 'Driver', Icons.drive_eta_rounded, Color(0xFF1E3A8A)),
-    ('karyawan', 'Karyawan', Icons.badge_outlined, Color(0xFF059669)),
     ('admin', 'Admin', Icons.admin_panel_settings_outlined, Color(0xFF2563EB)),
-    (
-      'supervisor',
-      'Supervisor',
-      Icons.supervisor_account_outlined,
-      Color(0xFF0891B2)
-    ),
     ('superadmin', 'Super Admin', Icons.security_rounded, Color(0xFF7C3AED)),
   ];
 

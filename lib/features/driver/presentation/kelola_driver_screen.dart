@@ -8,13 +8,12 @@ import '../../../shared/empty_state.dart';
 import '../domain/driver_model.dart';
 import '../domain/driver_provider.dart';
 
-const _roles = ['driver', 'karyawan', 'admin', 'superadmin'];
+const _roles = ['driver', 'admin', 'superadmin'];
 
 const _roleColors = {
   'superadmin': Color(0xFF7C3AED),
   'admin':      Color(0xFF2563EB),
   'driver':     AppColors.primary,
-  'karyawan':   Color(0xFF059669),
 };
 
 class KelolaDriverScreen extends ConsumerStatefulWidget {
@@ -163,7 +162,6 @@ class _KelolaDriverScreenState extends ConsumerState<KelolaDriverScreen> {
       case 'superadmin': return 'Superadmin';
       case 'admin':      return 'Admin';
       case 'driver':     return 'Driver';
-      case 'karyawan':   return 'Karyawan';
       default:           return role;
     }
   }
