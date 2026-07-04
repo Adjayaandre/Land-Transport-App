@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../../shared/empty_state.dart';
+import '../../../shared/vehicle_avatar.dart';
 import '../domain/kendaraan_model.dart';
 import '../domain/kendaraan_provider.dart';
 
@@ -241,21 +242,14 @@ class _KendaraanCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final aktif = item.aktif;
-    final statusColor = aktif ? AppColors.completed : const Color(0xFFF59E0B);
-    final statusBg = aktif
-        ? AppColors.completed.withValues(alpha: 0.12)
-        : const Color(0xFFF59E0B).withValues(alpha: 0.12);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final statusColor = VehicleAvatar.iconColor(aktif);
+    final statusBg = VehicleAvatar.bgColor(aktif, isDark: isDark);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: aktif
-            ? (Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1B4332)
-                : const Color(0xFFE8F5E9))
-            : (Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF4A3B0F)
-                : const Color(0xFFFEF3C7)),
+        color: statusBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: aktif
@@ -269,16 +263,7 @@ class _KendaraanCard extends ConsumerWidget {
           // Header: ikon + nomor pol + edit/hapus
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.directions_car_rounded,
-                    color: AppColors.primary, size: 22),
-              ),
+              VehicleAvatar(aktif: aktif),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

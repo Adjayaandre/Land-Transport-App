@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../shared/vehicle_avatar.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../domain/dashboard_provider.dart';
 import '../domain/dashboard_model.dart';
@@ -291,13 +292,9 @@ class _KendaraanStatusCard extends StatelessWidget {
     final aktif = kendaraan['aktif'] as bool? ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = aktif
-        ? (isDark ? const Color(0xFF1B4332) : const Color(0xFFE8F5E9))
-        : (isDark ? const Color(0xFF4A3B0F) : const Color(0xFFFEF3C7));
-    final textColor = aktif
-        ? (isDark ? Colors.white : const Color(0xFF388E3C))
-        : (isDark ? Colors.white : const Color(0xFF92660B));
-    final dotColor = aktif ? AppColors.completed : const Color(0xFFF59E0B);
+    final bgColor = VehicleAvatar.bgColor(aktif, isDark: isDark);
+    final textColor = VehicleAvatar.iconColor(aktif);
+    final dotColor = VehicleAvatar.iconColor(aktif);
 
     final merekModel = [kendaraan['merek'], kendaraan['model']]
         .where((e) => e != null && '$e'.isNotEmpty)
@@ -379,16 +376,7 @@ class _ActivityItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.directions_car_rounded,
-                    color: AppColors.completed, size: 18),
-              ),
+              VehicleAvatar(aktif: trip.selesai, size: 36, iconSize: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

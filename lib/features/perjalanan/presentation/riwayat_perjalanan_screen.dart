@@ -127,7 +127,7 @@ class _RiwayatPerjalananScreenState
                 const SizedBox(width: 8),
                 _statusChip(setSheet, 'tutup', 'Selesai', tempStatus,
                     (v) => tempStatus = v,
-                    color: AppColors.primary),
+                    color: const Color.fromARGB(255, 41, 177, 71)),
               ]),
               const SizedBox(height: 20),
 
