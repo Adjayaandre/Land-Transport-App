@@ -6,6 +6,7 @@ import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../data/perjalanan_repository.dart';
+import '../data/perjalanan_export_service.dart';
 import '../../dashboard/domain/dashboard_provider.dart';
 
 final _riwayatProvider =
@@ -27,6 +28,7 @@ class _RiwayatPerjalananScreenState
   String _query = '';
   String? _filterStatus; // null=semua, 'aktif', 'tutup'
   DateTimeRange? _filterTanggal;
+  bool _isExporting = false;
 
   @override
   void dispose() {
@@ -127,7 +129,7 @@ class _RiwayatPerjalananScreenState
                 const SizedBox(width: 8),
                 _statusChip(setSheet, 'tutup', 'Selesai', tempStatus,
                     (v) => tempStatus = v,
-                    color: const Color.fromARGB(255, 41, 177, 71)),
+                    color: AppColors.primary),
               ]),
               const SizedBox(height: 20),
 
@@ -266,6 +268,48 @@ class _RiwayatPerjalananScreenState
           onPressed: () => context.pop(),
         ),
         title: const Text('Riwayat Perjalanan'),
+        actions: [
+          riwayatAsync.whenData((klips) {
+            final filtered = _applyFilter(klips);
+            return _isExporting
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : IconButton(
+                    tooltip: 'Export Excel',
+                    icon: const Icon(Icons.table_chart_outlined,
+                        color: Colors.white),
+                    onPressed: filtered.isEmpty
+                        ? null
+                        : () async {
+                            setState(() => _isExporting = true);
+                            try {
+                              await PerjalananExportService.exportToExcel(
+                                  filtered);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content:
+                                          Text('Gagal export: $e')),
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isExporting = false);
+                              }
+                            }
+                          },
+                  );
+          }).valueOrNull ??
+              const SizedBox.shrink(),
+        ],
       ),
       body: Column(
         children: [
