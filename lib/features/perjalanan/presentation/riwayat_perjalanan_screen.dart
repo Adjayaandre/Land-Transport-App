@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/file_saver.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../data/perjalanan_repository.dart';
 import '../data/perjalanan_export_service.dart';
+import '../data/perjalanan_pdf_service.dart';
 import '../../dashboard/domain/dashboard_provider.dart';
 
 final _riwayatProvider =
@@ -141,17 +143,39 @@ class _RiwayatPerjalananScreenState
               GestureDetector(
                 onTap: () async {
                   final picked = await showDateRangePicker(
-                    context: context,
+                    context: ctx,
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                     initialDateRange: tempTanggal,
-                    builder: (ctx, child) => Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                            primary: AppColors.primary),
-                      ),
-                      child: child!,
-                    ),
+                    builder: (ctx2, child) {
+                      final isDark2 =
+                          Theme.of(ctx2).brightness == Brightness.dark;
+                      return Theme(
+                        data: Theme.of(ctx2).copyWith(
+                          colorScheme: isDark2
+                              ? const ColorScheme.dark(
+                                  primary: AppColors.primaryLight,
+                                  onPrimary: Colors.white,
+                                  surface: Color(0xFF1E2A3A),
+                                  onSurface: Colors.white,
+                                )
+                              : const ColorScheme.light(
+                                  primary: AppColors.primary,
+                                  onPrimary: Colors.white,
+                                  surface: Colors.white,
+                                  onSurface: Colors.black87,
+                                ),
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(
+                              foregroundColor: isDark2
+                                  ? AppColors.primaryLight
+                                  : AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (picked != null) setSheet(() => tempTanggal = picked);
                 },
@@ -258,7 +282,10 @@ class _RiwayatPerjalananScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isSuperadmin = ref.watch(authProvider).user?.role == 'superadmin';
+    final user = ref.watch(authProvider).user;
+    final isSuperadmin = user?.role == 'superadmin';
+    final isAdmin = user?.role == 'admin';
+    final canExport = isSuperadmin || isAdmin;
     final riwayatAsync = ref.watch(_riwayatProvider);
 
     return Scaffold(
@@ -269,46 +296,26 @@ class _RiwayatPerjalananScreenState
         ),
         title: const Text('Riwayat Perjalanan'),
         actions: [
-          riwayatAsync.whenData((klips) {
-            final filtered = _applyFilter(klips);
-            return _isExporting
-                ? const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    ),
-                  )
-                : IconButton(
-                    tooltip: 'Export Excel',
-                    icon: const Icon(Icons.table_chart_outlined,
-                        color: Colors.white),
-                    onPressed: filtered.isEmpty
-                        ? null
-                        : () async {
-                            setState(() => _isExporting = true);
-                            try {
-                              await PerjalananExportService.exportToExcel(
-                                  filtered);
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content:
-                                          Text('Gagal export: $e')),
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setState(() => _isExporting = false);
-                              }
-                            }
-                          },
-                  );
-          }).valueOrNull ??
-              const SizedBox.shrink(),
+          if (canExport)
+            riwayatAsync.whenData((klips) {
+              return _isExporting
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      ),
+                    )
+                  : IconButton(
+                      tooltip: 'Export Excel',
+                      icon: const Icon(Icons.table_chart_outlined,
+                          color: Colors.white),
+                      onPressed: () => _handleExport(klips),
+                    );
+            }).valueOrNull ??
+                const SizedBox.shrink(),
         ],
       ),
       body: Column(
@@ -445,6 +452,7 @@ class _RiwayatPerjalananScreenState
                         if (updated == true)
                           ref.invalidate(_riwayatProvider);
                       },
+                      onExportPdf: (trip, kendaraan) => _exportTripPdf(trip, kendaraan),
                     ),
                   );
                 },
@@ -454,6 +462,127 @@ class _RiwayatPerjalananScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _handleExport(List<Map<String, dynamic>> semua) async {
+    // Pilih rentang tanggal dulu
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: DateTimeRange(
+        start: DateTime.now().subtract(const Duration(days: 30)),
+        end: DateTime.now(),
+      ),
+      helpText: 'Pilih Rentang Tanggal Export',
+      saveText: 'Export',
+      builder: (ctx, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: isDark
+              ? const ColorScheme.dark(
+                  primary: AppColors.primaryLight,
+                  onPrimary: Colors.white,
+                  surface: Color(0xFF1E2A3A),
+                  onSurface: Colors.white,
+                )
+              : const ColorScheme.light(
+                  primary: AppColors.primary,
+                  onPrimary: Colors.white,
+                  surface: Colors.white,
+                  onSurface: Colors.black87,
+                ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  isDark ? AppColors.primaryLight : AppColors.primary,
+            ),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (range == null || !mounted) return;
+
+    // Filter berdasarkan tanggal yang dipilih
+    final end = range.end
+        .add(const Duration(days: 1))
+        .subtract(const Duration(seconds: 1));
+    final filtered = semua.where((k) {
+      final raw = k['dibuat_pada'] as String?;
+      if (raw == null) return false;
+      final tgl = DateTime.tryParse(raw)?.toLocal();
+      if (tgl == null) return false;
+      return !tgl.isBefore(range.start) && !tgl.isAfter(end);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Tidak ada data perjalanan pada rentang tanggal ini')),
+      );
+      return;
+    }
+
+    // Pilih mode export
+    if (!mounted) return;
+    final mode = await showDialog<ExportMode>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ekspor Excel'),
+        content: const Text('Pilih cara ekspor file:'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true)
+                .pop(ExportMode.download),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('Bagikan'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true)
+                .pop(ExportMode.bagikan),
+          ),
+        ],
+      ),
+    );
+
+    if (mode == null || !mounted) return;
+
+    setState(() => _isExporting = true);
+    try {
+      final path = await PerjalananExportService.exportToExcel(
+        filtered,
+        mode: mode,
+      );
+      if (mounted && mode == ExportMode.download) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Rekap perjalanan berhasil didownload'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.green,
+            action: (FileSaver.canOpenFile && path != null)
+                ? SnackBarAction(
+                    label: 'Buka',
+                    textColor: Colors.white,
+                    onPressed: () => FileSaver.openFile(path),
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
   Future<void> _confirmDelete(
@@ -502,6 +631,64 @@ class _RiwayatPerjalananScreenState
       }
     }
   }
+
+  Future<void> _exportTripPdf(
+      Map<String, dynamic> trip, Map<String, dynamic>? kendaraan) async {
+    final mode = await showDialog<ExportMode>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ekspor PDF'),
+        content: const Text('Pilih cara ekspor file:'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(ExportMode.download),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('Bagikan'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(ExportMode.bagikan),
+          ),
+        ],
+      ),
+    );
+
+    if (mode == null || !mounted) return;
+
+    setState(() => _isExporting = true);
+    try {
+      final path = await PerjalananPdfService.exportTripPdf(
+        trip,
+        kendaraan,
+        mode: mode,
+      );
+      if (mounted && mode == ExportMode.download) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Dokumen perjalanan berhasil didownload'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.green,
+            action: (FileSaver.canOpenFile && path != null)
+                ? SnackBarAction(
+                    label: 'Buka',
+                    textColor: Colors.white,
+                    onPressed: () => FileSaver.openFile(path),
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
 }
 
 // ── Klip Card ─────────────────────────────────────────────────────────────────
@@ -511,12 +698,14 @@ class _KlipCard extends StatefulWidget {
   final bool isSuperadmin;
   final void Function(Map<String, dynamic>) onDeleteTrip;
   final void Function(Map<String, dynamic>) onEditTrip;
+  final void Function(Map<String, dynamic>, Map<String, dynamic>?) onExportPdf;
 
   const _KlipCard({
     required this.klip,
     required this.isSuperadmin,
     required this.onDeleteTrip,
     required this.onEditTrip,
+    required this.onExportPdf,
   });
 
   @override
@@ -675,6 +864,7 @@ class _KlipCardState extends State<_KlipCard> {
                   isSuperadmin: widget.isSuperadmin,
                   onEdit: () => widget.onEditTrip(perjalanan[i]),
                   onDelete: () => widget.onDeleteTrip(perjalanan[i]),
+                  onExportPdf: () => widget.onExportPdf(perjalanan[i], kendaraan),
                 ),
               ),
           ],
@@ -703,12 +893,14 @@ class _TripItem extends StatelessWidget {
   final bool isSuperadmin;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onExportPdf;
 
   const _TripItem({
     required this.trip,
     required this.isSuperadmin,
     required this.onEdit,
     required this.onDelete,
+    required this.onExportPdf,
   });
 
   @override
@@ -752,7 +944,13 @@ class _TripItem extends StatelessWidget {
                 child: const Icon(Icons.delete_outline,
                     size: 16, color: AppColors.cancelled),
               ),
+              const SizedBox(width: 12),
             ],
+            GestureDetector(
+              onTap: onExportPdf,
+              child: const Icon(Icons.picture_as_pdf_outlined,
+                  size: 16, color: AppColors.primary),
+            ),
           ]),
           const SizedBox(height: 4),
           _row(context, 'Tanggal', trip['tanggal'] as String? ?? '-'),

@@ -1,0 +1,1 @@
+enum ExportMode { download, bagikan }

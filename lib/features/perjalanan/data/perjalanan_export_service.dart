@@ -1,10 +1,11 @@
-import 'dart:io';
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../shared/file_saver.dart';
 
 class PerjalananExportService {
-  static Future<void> exportToExcel(List<Map<String, dynamic>> klips) async {
+  static Future<String?> exportToExcel(
+    List<Map<String, dynamic>> klips, {
+    ExportMode mode = ExportMode.bagikan,
+  }) async {
     final excel = Excel.createExcel();
     excel.rename('Sheet1', 'Riwayat Perjalanan');
     final sheet = excel['Riwayat Perjalanan'];
@@ -182,21 +183,17 @@ class PerjalananExportService {
     final bytes = excel.encode();
     if (bytes == null) throw Exception('Gagal membuat file Excel');
 
-    final dir = await getTemporaryDirectory();
     final fileName =
         'Riwayat_Perjalanan_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.xlsx';
-    final file = File('${dir.path}/$fileName');
-    await file.writeAsBytes(bytes);
+    const mimeType =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-    await Share.shareXFiles(
-      [
-        XFile(
-          file.path,
-          mimeType:
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        )
-      ],
-      subject: 'Riwayat Perjalanan LTMS',
+    return FileSaver.saveOrShare(
+      bytes: bytes,
+      fileName: fileName,
+      mimeType: mimeType,
+      mode: mode,
+      shareSubject: 'Riwayat Perjalanan LTMS',
     );
   }
 

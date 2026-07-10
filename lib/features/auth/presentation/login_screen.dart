@@ -21,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String? _errorMessage;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeIn;
@@ -57,7 +58,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _handleLogin() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authProvider.notifier).clearError();
     ref.read(authProvider.notifier).login(
           _emailController.text.trim().toLowerCase(),
           _passwordController.text,
@@ -122,28 +122,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.white, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Text(next.errorMessage!,
-                          style: const TextStyle(fontSize: 14))),
-                ],
-              ),
-              backgroundColor: AppColors.danger,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              margin: const EdgeInsets.all(16),
-              duration: const Duration(seconds: 4),
-            ),
-          );
+        setState(() => _errorMessage = next.errorMessage);
+      } else if (next.status == AuthStatus.loading) {
+        setState(() => _errorMessage = null);
       }
     });
 
@@ -298,6 +279,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             enabled: !authState.isLoading,
+            onChanged: (_) {
+              if (_errorMessage != null) setState(() => _errorMessage = null);
+            },
             style: TextStyle(
               fontSize: 15,
               color: Theme.of(context).colorScheme.onSurface,
@@ -323,6 +307,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
             enabled: !authState.isLoading,
+            onChanged: (_) {
+              if (_errorMessage != null) setState(() => _errorMessage = null);
+            },
             style: TextStyle(
               fontSize: 15,
               color: Theme.of(context).colorScheme.onSurface,
@@ -357,6 +344,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             onFieldSubmitted: (_) => _handleLogin(),
           ),
           const SizedBox(height: 24),
+          if (_errorMessage != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.danger.withValues(alpha: 0.3)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.error_outline_rounded,
+                    color: AppColors.danger, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.danger),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+          ],
           SizedBox(
             width: double.infinity,
             height: 50,

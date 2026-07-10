@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../data/auth_repository.dart';
@@ -18,12 +19,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   StreamSubscription<supabase.AuthState>? _authSubscription;
   bool _isLoggingIn = false;
+  bool _suppressNextSignedOut = false;
 
   AuthNotifier(this._repository) : super(const AuthState.initial()) {
     _authSubscription = _repository.authStateChanges.listen((event) async {
       if (_isLoggingIn) return;
 
       if (event.event == supabase.AuthChangeEvent.signedOut) {
+        if (_suppressNextSignedOut) {
+          _suppressNextSignedOut = false;
+          return;
+        }
         state = const AuthState.unauthenticated();
         return;
       }
@@ -95,6 +101,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
+  /// Logout paksa dengan pesan khusus, dipakai saat akun tidak diizinkan
+  /// mengakses platform tertentu (misal driver mencoba akses web).
+  Future<void> logoutWithMessage(String message) async {
+    _suppressNextSignedOut = true;
+    try {
+      await _repository.logout();
+    } catch (_) {}
+    state = AuthState.error(message);
+  }
+
   void clearError() {
     if (state.status == AuthStatus.error) {
       state = const AuthState.unauthenticated();
@@ -109,6 +125,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final user = await _repository.fetchUserProfile();
     if (user != null) {
+      const allowedWebRoles = {'admin', 'superadmin'};
+      if (kIsWeb && !allowedWebRoles.contains(user.role)) {
+        _suppressNextSignedOut = true;
+        try {
+          await _repository.logout();
+        } catch (_) {}
+        state = AuthState.error(
+          'Akun dengan peran "${user.peranLabel}" hanya dapat digunakan '
+          'melalui aplikasi mobile. Silakan login menggunakan aplikasi HP Anda.',
+        );
+        return;
+      }
       state = AuthState.authenticated(user);
       return;
     }

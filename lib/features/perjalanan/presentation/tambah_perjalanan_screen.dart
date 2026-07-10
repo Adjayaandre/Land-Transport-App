@@ -722,7 +722,7 @@ class _TambahPerjalananScreenState
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Simpan & Mulai Perjalanan'),
+                      : const Text('Simpan Perjalanan'),
                 ),
               ),
               const SizedBox(height: 24),
