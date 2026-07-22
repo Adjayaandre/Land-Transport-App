@@ -61,7 +61,7 @@ class DashboardScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
-                            'LTMS',
+                            'LTD',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 16,

@@ -238,7 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
                   TextSpan(
-                    text: 'MS',
+                    text: 'D',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -253,7 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'Land Transport Management System',
+          'Land Transport Digital',
           style: AppTextColors.style(
             context,
             fontSize: 13,

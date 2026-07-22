@@ -10,7 +10,7 @@ import '../core/constants/app_routes.dart';
 const _rootRoutes = {
   AppRoutes.dashboard,
   AppRoutes.kelolaKendaraan,
-  AppRoutes.kelolaDriver,
+  AppRoutes.kelolaPengguna,
   AppRoutes.profil,
 };
 
@@ -139,12 +139,12 @@ class _SuperadminNav extends StatelessWidget {
           Expanded(
             child: _NavItem(
               icon: Icons.person_add_rounded,
-              label: 'Kelola Driver',
-              route: AppRoutes.kelolaDriver,
-              routeName: AppRoutes.kelolaDriverName,
+              label: 'Kelola Pengguna',
+              route: AppRoutes.kelolaPengguna,
+              routeName: AppRoutes.kelolaPenggunaName,
               activePaths: const [
-                AppRoutes.kelolaDriver,
-                AppRoutes.tambahDriver,
+                AppRoutes.kelolaPengguna,
+                AppRoutes.tambahPengguna,
               ],
               currentPath: currentPath,
             ),
@@ -309,9 +309,9 @@ class _AppSidebar extends StatelessWidget {
             ),
             _SidebarItemData(
               icon: Icons.person_add_rounded,
-              label: 'Kelola Driver',
-              route: AppRoutes.kelolaDriver,
-              activePaths: [AppRoutes.kelolaDriver, AppRoutes.tambahDriver],
+              label: 'Kelola Pengguna',
+              route: AppRoutes.kelolaPengguna,
+              activePaths: [AppRoutes.kelolaPengguna, AppRoutes.tambahPengguna],
             ),
             _SidebarItemData(
               icon: Icons.person_outline_rounded,
@@ -367,7 +367,7 @@ class _AppSidebar extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   const Text(
-                    'LTMS',
+                    'LTD',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,

@@ -1,5 +1,5 @@
 name: land_transport_app
-description: Land Transport Management System - Digitalisasi pencatatan transportasi darat.
+description: Land Transport Digital - Digitalisasi pencatatan transportasi darat.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -36,6 +36,7 @@ dependencies:
   # Kamera & foto
   image_picker: ^1.0.7
   flutter_image_compress: ^2.1.0
+  image: ^4.0.0
 
   # Digital signature
   signature: ^5.4.1

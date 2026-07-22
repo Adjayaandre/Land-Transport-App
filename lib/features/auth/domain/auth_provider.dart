@@ -125,7 +125,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final user = await _repository.fetchUserProfile();
     if (user != null) {
-      const allowedWebRoles = {'admin', 'superadmin'};
+      // Mengizinkan semua role saat ini agar bisa dites di web
+      const allowedWebRoles = {'admin', 'superadmin', 'driver', 'karyawan'};
       if (kIsWeb && !allowedWebRoles.contains(user.role)) {
         _suppressNextSignedOut = true;
         try {

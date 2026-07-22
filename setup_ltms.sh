@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================
-#  Land Transport Management System - Flutter Project Setup
+#  Land Transport Digital - Flutter Project Setup
 #  Jalankan: bash setup_ltms.sh
 # ============================================================
 
@@ -9,7 +9,7 @@ PROJECT_NAME="land_transport_app"
 
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║   LTMS Flutter Project Setup                     ║"
+echo "║   LTD Flutter Project Setup                       ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -90,7 +90,7 @@ class App extends StatelessWidget {
     return MaterialApp(
       title: 'Land Transport App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const Scaffold(body: Center(child: Text('LTMS Ready 🚗'))),
+      home: const Scaffold(body: Center(child: Text('LTD Ready 🚗'))),
     );
   }
 }
@@ -760,7 +760,7 @@ echo ".env" >> .gitignore
 # ── pubspec.yaml: tambah dependencies ────────────────────────
 cat > pubspec.yaml << 'YAML'
 name: land_transport_management
-description: Land Transport Management System - Digitalisasi pencatatan transportasi darat.
+description: Land Transport Digital - Digitalisasi pencatatan transportasi darat.
 publish_to: 'none'
 version: 1.0.0+1
 

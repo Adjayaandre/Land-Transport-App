@@ -77,6 +77,7 @@ class DriverRepository {
     required String nama,
     required String email,
     required String password,
+    required String peran,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
     final normalizedNama = nama.trim();
@@ -85,6 +86,7 @@ class DriverRepository {
       nama: normalizedNama,
       email: normalizedEmail,
       password: password,
+      peran: peran,
     );
     if (viaEdge != null) return viaEdge;
 
@@ -92,6 +94,7 @@ class DriverRepository {
       nama: normalizedNama,
       email: normalizedEmail,
       password: password,
+      peran: peran,
     );
   }
 
@@ -99,12 +102,14 @@ class DriverRepository {
     required String nama,
     required String email,
     required String password,
+    required String peran,
   }) async {
     try {
       return await _createViaEdgeFunction(
         nama: nama,
         email: email,
         password: password,
+        peran: peran,
       );
     } on FunctionException catch (e) {
       if (_shouldFallbackToSignUp(e)) return null;
@@ -149,6 +154,7 @@ class DriverRepository {
     required String nama,
     required String email,
     required String password,
+    required String peran,
   }) async {
     final response = await _client.functions.invoke(
       _createDriverFunction,
@@ -156,6 +162,7 @@ class DriverRepository {
         'nama': nama,
         'email': email,
         'password': password,
+        'peran': peran,
       },
     );
 
@@ -183,7 +190,7 @@ class DriverRepository {
       id:    id,
       nama:  (data['nama'] as String?) ?? nama,
       email: (data['email'] as String?) ?? email,
-      peran: 'driver',
+      peran: peran,
       aktif: true,
     );
   }
@@ -192,6 +199,7 @@ class DriverRepository {
     required String nama,
     required String email,
     required String password,
+    required String peran,
   }) async {
     final adminSession = _client.auth.currentSession;
     if (adminSession == null) {
@@ -212,7 +220,7 @@ class DriverRepository {
         password: password,
         data: {
           'nama_lengkap': nama,
-          'peran': 'driver',
+          'peran': peran,
         },
       );
     } on AuthException catch (e) {
@@ -240,15 +248,16 @@ class DriverRepository {
       );
     }
 
-    await _ensurePenggunaProfile(userId: user.id, nama: nama);
+    await _ensurePenggunaProfile(userId: user.id, nama: nama, peran: peran);
     await _cacheEmail(user.id, email);
 
-    return DriverModel(id: user.id, nama: nama, email: email, peran: 'driver', aktif: true);
+    return DriverModel(id: user.id, nama: nama, email: email, peran: peran, aktif: true);
   }
 
   Future<void> _ensurePenggunaProfile({
     required String userId,
     required String nama,
+    required String peran,
   }) async {
     try {
       final existing = await _client
@@ -262,7 +271,7 @@ class DriverRepository {
       await _client.from('pengguna').insert({
         'id': userId,
         'nama_lengkap': nama,
-        'peran': 'driver',
+        'peran': peran,
         'aktif': true,
       });
     } on PostgrestException catch (e) {

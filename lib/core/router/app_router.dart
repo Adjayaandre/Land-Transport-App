@@ -16,8 +16,8 @@ import '../../features/perjalanan/presentation/riwayat_perjalanan_screen.dart';
 import '../../features/perjalanan/presentation/edit_perjalanan_screen.dart';
 import '../../features/kendaraan/presentation/kelola_kendaraan_screen.dart';
 import '../../features/kendaraan/presentation/tambah_kendaraan_screen.dart';
-import '../../features/driver/presentation/kelola_driver_screen.dart';
-import '../../features/driver/presentation/tambah_driver_screen.dart';
+import '../../features/pengguna/presentation/kelola_pengguna_screen.dart';
+import '../../features/pengguna/presentation/tambah_pengguna_screen.dart';
 
 CustomTransitionPage<void> _fadePage({
   required LocalKey key,
@@ -86,19 +86,19 @@ List<RouteBase> _shellRoutes() => [
         ),
       ),
       GoRoute(
-        name: AppRoutes.kelolaDriverName,
-        path: AppRoutes.kelolaDriver,
+        name: AppRoutes.kelolaPenggunaName,
+        path: AppRoutes.kelolaPengguna,
         pageBuilder: (_, state) => _fadePage(
           key: state.pageKey,
-          child: const KelolaDriverScreen(),
+          child: const KelolaPenggunaScreen(),
         ),
       ),
       GoRoute(
-        name: AppRoutes.tambahDriverName,
-        path: AppRoutes.tambahDriver,
+        name: AppRoutes.tambahPenggunaName,
+        path: AppRoutes.tambahPengguna,
         pageBuilder: (_, state) => _fadePage(
           key: state.pageKey,
-          child: TambahDriverScreen(
+          child: TambahPenggunaScreen(
             driverId: state.uri.queryParameters['id'],
           ),
         ),

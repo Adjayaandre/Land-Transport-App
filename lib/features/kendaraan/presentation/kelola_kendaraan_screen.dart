@@ -21,6 +21,77 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
   final _searchController = TextEditingController();
   bool? _filterAktif; // null = semua, true = available, false = unavailable
   String _query = '';
+  final Set<String> _selectedIds = {};
+
+  bool get _isSelecting => _selectedIds.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectedIds.clear();
+    });
+  }
+
+  Future<void> _confirmDeleteSelected() async {
+    final count = _selectedIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Kendaraan Terpilih'),
+        content: Text('Yakin ingin menghapus $count kendaraan dari daftar? '
+            'Tindakan ini tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context, rootNavigator: true).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.of(context, rootNavigator: true).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.cancelled,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        final futures = _selectedIds.map((id) =>
+            ref.read(kendaraanRepositoryProvider).delete(id));
+        await Future.wait(futures);
+        
+        _exitSelectionMode();
+        ref.invalidate(kendaraanListProvider);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$count kendaraan berhasil dihapus')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menghapus kendaraan: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -35,7 +106,23 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Kelola Kendaraan'),
+        leading: _isSelecting
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded, size: 22),
+                onPressed: _exitSelectionMode,
+              )
+            : null,
+        title: Text(_isSelecting
+            ? '${_selectedIds.length} dipilih'
+            : 'Kelola Kendaraan'),
+        actions: [
+          if (_isSelecting)
+            IconButton(
+              tooltip: 'Hapus Terpilih',
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.cancelled),
+              onPressed: _confirmDeleteSelected,
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -149,8 +236,20 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) =>
                         const SizedBox(height: 10),
-                    itemBuilder: (context, index) =>
-                        _KendaraanCard(item: filtered[index]),
+                    itemBuilder: (context, index) {
+                      final item = filtered[index];
+                      return _KendaraanCard(
+                        item: item,
+                        isSelected: _selectedIds.contains(item.id),
+                        isSelecting: _isSelecting,
+                        onLongPress: () => _toggleSelection(item.id),
+                        onTap: () {
+                          if (_isSelecting) {
+                            _toggleSelection(item.id);
+                          }
+                        },
+                      );
+                    },
                   ),
                 );
               },
@@ -200,44 +299,18 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
 
 class _KendaraanCard extends ConsumerWidget {
   final KendaraanModel item;
-  const _KendaraanCard({required this.item});
+  final bool isSelected;
+  final bool isSelecting;
+  final VoidCallback onLongPress;
+  final VoidCallback onTap;
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Hapus Kendaraan'),
-        content: Text('Hapus ${item.nomorPlat} dari daftar?'),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.cancelled,
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && context.mounted) {
-      await ref.read(kendaraanRepositoryProvider).delete(item.id);
-      ref.invalidate(kendaraanListProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kendaraan berhasil dihapus')),
-        );
-      }
-    }
-  }
+  const _KendaraanCard({
+    required this.item,
+    required this.isSelected,
+    required this.isSelecting,
+    required this.onLongPress,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -246,52 +319,65 @@ class _KendaraanCard extends ConsumerWidget {
     final statusColor = VehicleAvatar.iconColor(aktif);
     final statusBg = VehicleAvatar.bgColor(aktif, isDark: isDark);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: statusBg,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onLongPress: onLongPress,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: aktif
-              ? AppColors.completed.withValues(alpha: 0.4)
-              : const Color(0xFFF59E0B).withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header: ikon + nomor pol + edit/hapus
-          Row(
-            children: [
-              VehicleAvatar(aktif: aktif),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'No. Pol: ${item.nomorPlat}',
-                  style: AppTextColors.style(context,
-                      fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Edit',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => context.pushNamed(
-                  AppRoutes.tambahKendaraanName,
-                  queryParameters: {'id': item.id},
-                ),
-                icon: Icon(Icons.edit_outlined,
-                    color: context.adaptiveTextSecondary, size: 20),
-              ),
-              IconButton(
-                tooltip: 'Hapus',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _confirmDelete(context, ref),
-                icon: const Icon(Icons.delete_outline_rounded,
-                    color: AppColors.cancelled, size: 20),
-              ),
-            ],
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : statusBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : (aktif
+                      ? AppColors.completed.withValues(alpha: 0.4)
+                      : const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+              width: isSelected ? 2 : 1,
+            ),
           ),
-          const SizedBox(height: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: ikon + nomor pol + edit/hapus
+              Row(
+                children: [
+                  VehicleAvatar(aktif: aktif),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'No. Pol: ${item.nomorPlat}',
+                      style: AppTextColors.style(context,
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  if (isSelecting)
+                    Icon(
+                      isSelected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: isSelected
+                          ? AppColors.primary
+                          : context.adaptiveTextSecondary,
+                      size: 24,
+                    )
+                  else
+                    IconButton(
+                      tooltip: 'Edit',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => context.pushNamed(
+                        AppRoutes.tambahKendaraanName,
+                        queryParameters: {'id': item.id},
+                      ),
+                      icon: Icon(Icons.edit_outlined,
+                          color: context.adaptiveTextSecondary, size: 20),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
           // Info rows
           _infoRow(context, '${item.merek} ${item.model}'),
@@ -326,6 +412,8 @@ class _KendaraanCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    ),
       ),
     );
   }

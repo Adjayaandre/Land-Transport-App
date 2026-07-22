@@ -65,7 +65,7 @@ class PerjalananExportService {
       CellIndex.indexByString('M1'),
     );
     final titleCell = sheet.cell(CellIndex.indexByString('A1'));
-    titleCell.value = TextCellValue('RIWAYAT PERJALANAN LTMS');
+    titleCell.value = TextCellValue('RIWAYAT PERJALANAN LTD');
     titleCell.cellStyle = titleStyle;
     sheet.setRowHeight(0, 30);
 
@@ -193,7 +193,7 @@ class PerjalananExportService {
       fileName: fileName,
       mimeType: mimeType,
       mode: mode,
-      shareSubject: 'Riwayat Perjalanan LTMS',
+      shareSubject: 'Riwayat Perjalanan LTD',
     );
   }
 

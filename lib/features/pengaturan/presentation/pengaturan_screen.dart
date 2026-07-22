@@ -117,7 +117,7 @@ class PengaturanScreen extends ConsumerWidget {
           const SizedBox(height: 32),
           Center(
             child: Text(
-              'LTMS v1.0.0',
+              'LTD v1.0.0',
               style: theme.textTheme.bodySmall,
             ),
           ),

@@ -9,16 +9,16 @@ import '../../auth/domain/auth_provider.dart';
 import '../domain/driver_model.dart';
 import '../domain/driver_provider.dart';
 
-class TambahDriverScreen extends ConsumerStatefulWidget {
+class TambahPenggunaScreen extends ConsumerStatefulWidget {
   final String? driverId;
 
-  const TambahDriverScreen({super.key, this.driverId});
+  const TambahPenggunaScreen({super.key, this.driverId});
 
   @override
-  ConsumerState<TambahDriverScreen> createState() => _TambahDriverScreenState();
+  ConsumerState<TambahPenggunaScreen> createState() => _TambahPenggunaScreenState();
 }
 
-class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
+class _TambahPenggunaScreenState extends ConsumerState<TambahPenggunaScreen> {
   final _formKey = GlobalKey<FormState>();
   final _namaController = TextEditingController();
   final _emailController = TextEditingController();
@@ -74,6 +74,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
           nama: _namaController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          peran: _selectedPeran,
         );
       }
 
@@ -85,12 +86,12 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
         SnackBar(
           content: Text(
             _isEdit
-                ? 'Driver berhasil diperbarui'
-                : 'Akun driver berhasil dibuat. Driver dapat login dengan email dan password tersebut.',
+                ? 'Pengguna berhasil diperbarui'
+                : 'Akun pengguna berhasil dibuat. Pengguna dapat login dengan email dan password tersebut.',
           ),
         ),
       );
-      context.goNamed(AppRoutes.kelolaDriverName);
+      context.goNamed(AppRoutes.kelolaPenggunaName);
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,7 +101,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan driver: $e')),
+          SnackBar(content: Text('Gagal menyimpan pengguna: $e')),
         );
       }
     } finally {
@@ -117,14 +118,14 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
     }
     if (lower.contains('email not confirmed') ||
         lower.contains('confirm email')) {
-      return 'Akun driver perlu konfirmasi email. Hubungi admin atau nonaktifkan "Confirm email" di Supabase Auth.';
+      return 'Akun pengguna perlu konfirmasi email. Hubungi admin atau nonaktifkan "Confirm email" di Supabase Auth.';
     }
     if (lower.contains('edge function') ||
         lower.contains('deploy edge function')) {
       return message;
     }
     if (lower.contains('forbidden') || lower.contains('superadmin')) {
-      return 'Hanya superadmin yang dapat menambah driver.';
+      return 'Hanya superadmin yang dapat menambah pengguna.';
     }
     if (lower.contains('migrasi sql') ||
         lower.contains('profil driver gagal')) {
@@ -142,10 +143,10 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
           body: Center(child: CircularProgressIndicator()),
         ),
         error: (_, __) => Scaffold(
-          appBar: AppBar(title: const Text('Edit Driver')),
+          appBar: AppBar(title: const Text('Edit Pengguna')),
           body: Center(
             child: Text(
-              'Driver tidak ditemukan',
+              'Pengguna tidak ditemukan',
               style: AppTextColors.style(context),
             ),
           ),
@@ -153,10 +154,10 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
         data: (item) {
           if (item == null) {
             return Scaffold(
-              appBar: AppBar(title: const Text('Edit Driver')),
+              appBar: AppBar(title: const Text('Edit Pengguna')),
               body: Center(
                 child: Text(
-                  'Driver tidak ditemukan',
+                  'Pengguna tidak ditemukan',
                   style: AppTextColors.style(context),
                 ),
               ),
@@ -184,7 +185,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.goNamed(AppRoutes.kelolaDriverName);
+              context.goNamed(AppRoutes.kelolaPenggunaName);
             }
           },
         ),
@@ -197,7 +198,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
-                'LTMS',
+                'LTD',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 13,
@@ -206,7 +207,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Text(_isEdit ? 'Edit Driver' : 'Tambah Akun Driver'),
+            Text(_isEdit ? 'Edit Pengguna' : 'Tambah Akun Pengguna'),
           ],
         ),
       ),
@@ -220,12 +221,12 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionHeader('Informasi Akun Driver'),
+                    _sectionHeader('Informasi Akun Pengguna'),
                     const SizedBox(height: 16),
                     _label('Nama Lengkap'),
                     _buildTextField(
                       controller: _namaController,
-                      hint: 'Nama lengkap driver',
+                      hint: 'Nama lengkap pengguna',
                       prefixIcon: Icons.person_outline_rounded,
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
@@ -344,7 +345,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
                             )
                           : Text(_isEdit
                               ? 'Simpan Perubahan'
-                              : 'Buat Akun Driver'),
+                              : 'Buat Akun Pengguna'),
                     ),
                   ),
                 ],
@@ -360,6 +361,7 @@ class _TambahDriverScreenState extends ConsumerState<TambahDriverScreen> {
     ('driver', 'Driver', Icons.drive_eta_rounded, Color(0xFF1E3A8A)),
     ('admin', 'Admin', Icons.admin_panel_settings_outlined, Color(0xFF2563EB)),
     ('superadmin', 'Super Admin', Icons.security_rounded, Color(0xFF7C3AED)),
+    ('karyawan', 'Karyawan', Icons.work_outline_rounded, Color(0xFF059669)),
   ];
 
   Widget _buildRolePicker() {

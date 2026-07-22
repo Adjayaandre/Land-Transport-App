@@ -251,11 +251,14 @@ class _TambahPerjalananScreenState
                 TextField(
                   controller: odometerCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Masukkan odometer',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    helperText: _kendaraanOdometerSekarang != null
+                        ? 'Odometer sekarang: ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM'
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -304,6 +307,13 @@ class _TambahPerjalananScreenState
                             content: Text('Odometer wajib diisi')));
                         return;
                       }
+                      if (_kendaraanOdometerSekarang != null &&
+                          odometer < _kendaraanOdometerSekarang!) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            content: Text(
+                                'Odometer tidak boleh kurang dari ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM')));
+                        return;
+                      }
                       if (fotoOdometerBytes == null) {
                         ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                             content: Text('Foto odometer wajib diambil')));
@@ -322,6 +332,17 @@ class _TambahPerjalananScreenState
                               fotoNotaBytes: fotoNotaBytes!,
                               fotoOdometerBytes: fotoOdometerBytes!,
                             );
+                        // Update odometer kendaraan agar tersinkron
+                        await ref
+                            .read(tripRepositoryProvider)
+                            .updateOdometerKendaraan(
+                              _kendaraanId!,
+                              odometer,
+                            );
+                        if (mounted) {
+                          setState(() =>
+                              _kendaraanOdometerSekarang = odometer);
+                        }
                         if (ctx.mounted) {
                           Navigator.of(ctx, rootNavigator: true).pop(true);
                         }
@@ -536,7 +557,7 @@ class _TambahPerjalananScreenState
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
-                'LTMS',
+                'LTD',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 13,
@@ -722,7 +743,7 @@ class _TambahPerjalananScreenState
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Simpan Perjalanan'),
+                      : const Text('Simpan & Mulai Perjalanan'),
                 ),
               ),
               const SizedBox(height: 24),

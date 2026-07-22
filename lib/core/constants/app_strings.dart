@@ -8,6 +8,6 @@ class AppStrings {
   static const String errorPassword = 'Password minimal 6 karakter';
   static const String errorNetwork  = 'Tidak ada koneksi internet';
   static const String errorGeneral  = 'Terjadi kesalahan. Coba lagi.';
-  static const String appName       = 'LTMS';
-  static const String appTagline    = 'Land Transport Management System';
+  static const String appName       = 'LTD';
+  static const String appTagline    = 'Land Transport Digital';
 }

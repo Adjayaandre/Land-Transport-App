@@ -183,7 +183,7 @@ class _TambahKendaraanScreenState
               color: Colors.white,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Text('LTMS',
+            child: const Text('LTD',
                 style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 13,

@@ -7,8 +7,8 @@ abstract class AppRoutes {
   static const editPerjalanan = '/edit-perjalanan';
   static const kelolaKendaraan  = '/kelola-kendaraan';
   static const tambahKendaraan  = '/tambah-kendaraan';
-  static const kelolaDriver     = '/kelola-driver';
-  static const tambahDriver     = '/tambah-driver';
+  static const kelolaPengguna   = '/kelola-pengguna';
+  static const tambahPengguna   = '/tambah-pengguna';
   static const profil           = '/profil';
   static const pengaturan       = '/pengaturan';
 
@@ -18,8 +18,8 @@ abstract class AppRoutes {
   static const editPerjalananName = 'editPerjalanan';
   static const kelolaKendaraanName  = 'kelolaKendaraan';
   static const tambahKendaraanName  = 'tambahKendaraan';
-  static const kelolaDriverName     = 'kelolaDriver';
-  static const tambahDriverName     = 'tambahDriver';
+  static const kelolaPenggunaName   = 'kelolaPengguna';
+  static const tambahPenggunaName   = 'tambahPengguna';
   static const profilName           = 'profil';
   static const pengaturanName       = 'pengaturan';
 }

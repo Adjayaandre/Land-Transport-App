@@ -167,7 +167,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       child: Column(
                         children: [
                           const Text(
-                            'LTMS',
+                            'LTD',
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w800,
@@ -177,7 +177,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Land Transport Management System',
+                            'Land Transport Digital',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,

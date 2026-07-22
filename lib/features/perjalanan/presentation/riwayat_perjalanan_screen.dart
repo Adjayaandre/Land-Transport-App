@@ -31,6 +31,76 @@ class _RiwayatPerjalananScreenState
   String? _filterStatus; // null=semua, 'aktif', 'tutup'
   DateTimeRange? _filterTanggal;
   bool _isExporting = false;
+  final Set<String> _selectedKlipIds = {};
+
+  bool get _isSelecting => _selectedKlipIds.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedKlipIds.contains(id)) {
+        _selectedKlipIds.remove(id);
+      } else {
+        _selectedKlipIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectedKlipIds.clear();
+    });
+  }
+
+  Future<void> _confirmDeleteSelected(WidgetRef ref) async {
+    final count = _selectedKlipIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Klip Terpilih'),
+        content: Text(
+            'Yakin ingin menghapus $count klip yang dipilih beserta semua '
+            'perjalanan di dalamnya? Tindakan ini tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(true),
+            child:
+                const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final futures = _selectedKlipIds.map((id) =>
+          ref.read(tripRepositoryProvider).deleteKlip(id));
+      await Future.wait(futures);
+      
+      _exitSelectionMode();
+      ref.invalidate(_riwayatProvider);
+      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(perjalananTerbaruProvider);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$count klip berhasil dihapus')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghapus klip: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -290,70 +360,108 @@ class _RiwayatPerjalananScreenState
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Riwayat Perjalanan'),
+        leading: _isSelecting
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded, size: 22),
+                onPressed: _exitSelectionMode,
+              )
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                onPressed: () => context.pop(),
+              ),
+        title: Text(_isSelecting
+            ? '${_selectedKlipIds.length} dipilih'
+            : 'Riwayat Perjalanan'),
         actions: [
-          if (canExport)
-            riwayatAsync.whenData((klips) {
-              return _isExporting
-                  ? const Padding(
-                      padding: EdgeInsets.all(14),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      ),
-                    )
-                  : IconButton(
-                      tooltip: 'Export Excel',
-                      icon: const Icon(Icons.table_chart_outlined,
-                          color: Colors.white),
-                      onPressed: () => _handleExport(klips),
-                    );
-            }).valueOrNull ??
-                const SizedBox.shrink(),
+          if (_isSelecting)
+            IconButton(
+              tooltip: 'Hapus Klip Terpilih',
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+              onPressed: () => _confirmDeleteSelected(ref),
+            ),
         ],
       ),
       body: Column(
         children: [
           // ── Search + Filter ──────────────────────────────
+          // ── Search + Filter + Export ──────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _query = v.toLowerCase()),
-                  decoration: InputDecoration(
-                    hintText: 'Cari nomor polisi / kendaraan...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                            color: Theme.of(context).dividerTheme.color ??
-                                AppColors.border)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5)),
-                  ),
-                ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _query = v.toLowerCase()),
+              decoration: InputDecoration(
+                hintText: 'Cari nomor polisi / kendaraan...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).dividerTheme.color ??
+                            AppColors.border)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5)),
               ),
-              const SizedBox(width: 8),
-              Stack(
-                children: [
-                  OutlinedButton(
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                if (canExport) ...[
+                  Expanded(
+                    child: riwayatAsync.whenData((klips) {
+                      return OutlinedButton.icon(
+                        onPressed: _isExporting ? null : () => _handleExport(klips),
+                        icon: _isExporting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : const Icon(Icons.table_chart_outlined, size: 18),
+                        label: Text(
+                            _isExporting ? 'Mengekspor...' : 'Export Excel'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                          side: BorderSide(
+                              color: Theme.of(context).dividerTheme.color ??
+                                  AppColors.border),
+                        ),
+                      );
+                    }).valueOrNull ??
+                        const SizedBox.shrink(),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: OutlinedButton.icon(
                     onPressed: _showFilterSheet,
+                    icon: Icon(
+                      Icons.tune_rounded,
+                      size: 18,
+                      color: _hasFilter
+                          ? AppColors.primary
+                          : context.adaptiveTextSecondary,
+                    ),
+                    label: Text(
+                      'Filter',
+                      style: TextStyle(
+                        color: _hasFilter
+                            ? AppColors.primary
+                            : context.adaptiveTextSecondary,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 44),
                       side: BorderSide(
                         color: _hasFilter
                             ? AppColors.primary
@@ -361,42 +469,23 @@ class _RiwayatPerjalananScreenState
                                 AppColors.border,
                       ),
                     ),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      color: _hasFilter
-                          ? AppColors.primary
-                          : context.adaptiveTextSecondary,
-                    ),
                   ),
-                  if (_hasFilter)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                ),
+                if (_hasFilter) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: _resetFilter,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: EdgeInsets.zero,
+                      side: const BorderSide(color: AppColors.cancelled),
                     ),
-                ],
-              ),
-              if (_hasFilter) ...[
-                const SizedBox(width: 6),
-                GestureDetector(
-                  onTap: _resetFilter,
-                  child: Container(
-                    width: 36,
-                    height: 48,
-                    alignment: Alignment.center,
                     child: const Icon(Icons.close_rounded,
                         size: 18, color: AppColors.cancelled),
                   ),
-                ),
+                ],
               ],
-            ]),
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -442,6 +531,14 @@ class _RiwayatPerjalananScreenState
                     itemBuilder: (context, i) => _KlipCard(
                       klip: filtered[i],
                       isSuperadmin: isSuperadmin,
+                      isSelected: _selectedKlipIds.contains(filtered[i]['id'] as String),
+                      isSelecting: _isSelecting,
+                      onLongPress: () => _toggleSelection(filtered[i]['id'] as String),
+                      onTap: () {
+                        if (_isSelecting) {
+                          _toggleSelection(filtered[i]['id'] as String);
+                        }
+                      },
                       onDeleteTrip: (trip) =>
                           _confirmDelete(context, ref, trip),
                       onEditTrip: (trip) async {
@@ -452,7 +549,10 @@ class _RiwayatPerjalananScreenState
                         if (updated == true)
                           ref.invalidate(_riwayatProvider);
                       },
-                      onExportPdf: (trip, kendaraan) => _exportTripPdf(trip, kendaraan),
+                      onExportPdf: (trip, kendaraan) =>
+                          _exportTripPdf(trip, kendaraan),
+                      onExportKlipPdf: () =>
+                          _exportKlipPdf(context, filtered[i]),
                     ),
                   );
                 },
@@ -632,6 +732,7 @@ class _RiwayatPerjalananScreenState
     }
   }
 
+
   Future<void> _exportTripPdf(
       Map<String, dynamic> trip, Map<String, dynamic>? kendaraan) async {
     final mode = await showDialog<ExportMode>(
@@ -689,6 +790,74 @@ class _RiwayatPerjalananScreenState
       if (mounted) setState(() => _isExporting = false);
     }
   }
+
+  Future<void> _exportKlipPdf(
+      BuildContext context, Map<String, dynamic> klip) async {
+    final perjalananList =
+        (klip['perjalanan'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    if (perjalananList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Klip ini belum memiliki perjalanan')),
+      );
+      return;
+    }
+
+    final mode = await showDialog<ExportMode>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ekspor PDF Klip'),
+        content: const Text('Pilih cara ekspor file:'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true)
+                .pop(ExportMode.download),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('Bagikan'),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true)
+                .pop(ExportMode.bagikan),
+          ),
+        ],
+      ),
+    );
+
+    if (mode == null || !mounted) return;
+
+    setState(() => _isExporting = true);
+    try {
+      final path = await PerjalananPdfService.exportKlipPdf(
+        klip,
+        mode: mode,
+      );
+      if (mounted && mode == ExportMode.download && path != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Laporan klip berhasil didownload'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.green,
+            action: FileSaver.canOpenFile
+                ? SnackBarAction(
+                    label: 'Buka',
+                    textColor: Colors.white,
+                    onPressed: () => FileSaver.openFile(path),
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export PDF klip: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
 }
 
 // ── Klip Card ─────────────────────────────────────────────────────────────────
@@ -696,16 +865,26 @@ class _RiwayatPerjalananScreenState
 class _KlipCard extends StatefulWidget {
   final Map<String, dynamic> klip;
   final bool isSuperadmin;
+  final bool isSelected;
+  final bool isSelecting;
+  final VoidCallback onLongPress;
+  final VoidCallback onTap;
   final void Function(Map<String, dynamic>) onDeleteTrip;
   final void Function(Map<String, dynamic>) onEditTrip;
   final void Function(Map<String, dynamic>, Map<String, dynamic>?) onExportPdf;
+  final VoidCallback onExportKlipPdf;
 
   const _KlipCard({
     required this.klip,
     required this.isSuperadmin,
+    required this.isSelected,
+    required this.isSelecting,
+    required this.onLongPress,
+    required this.onTap,
     required this.onDeleteTrip,
     required this.onEditTrip,
     required this.onExportPdf,
+    required this.onExportKlipPdf,
   });
 
   @override
@@ -728,28 +907,40 @@ class _KlipCardState extends State<_KlipCard> {
         .join(' ');
 
     final statusColor =
-        isAktif ? AppColors.completed : AppColors.primary;
+        isAktif ? const Color(0xFFF59E0B) : Colors.green;
     final statusBg = isAktif
-        ? AppColors.completed.withValues(alpha: 0.1)
-        : AppColors.primary.withValues(alpha: 0.1);
+        ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+        : Colors.green.withValues(alpha: 0.1);
 
     final dibuatPada = _fmt(klip['dibuat_pada'] as String?);
     final ditutupPada = _fmt(klip['ditutup_pada'] as String?);
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: widget.isSelected 
+            ? AppColors.primary.withValues(alpha: 0.1)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isAktif
-              ? AppColors.completed.withValues(alpha: 0.4)
-              : Theme.of(context).dividerTheme.color ?? AppColors.border,
+          color: widget.isSelected
+              ? AppColors.primary
+              : (isAktif
+                  ? const Color(0xFFF59E0B).withValues(alpha: 0.4)
+                  : Theme.of(context).dividerTheme.color ?? AppColors.border),
+          width: widget.isSelected ? 2 : 1,
         ),
       ),
       child: Column(
         children: [
           InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
+            onLongPress: widget.onLongPress,
+            onTap: () {
+              if (widget.isSelecting) {
+                widget.onTap();
+              } else {
+                setState(() => _expanded = !_expanded);
+              }
+            },
             borderRadius: BorderRadius.circular(14),
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -828,12 +1019,38 @@ class _KlipCardState extends State<_KlipCard> {
                     ],
                   ),
                 ),
-                Icon(
-                  _expanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: context.adaptiveTextSecondary,
+                GestureDetector(
+                  onTap: widget.onExportKlipPdf,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.picture_as_pdf_rounded,
+                        size: 18, color: Colors.green),
+                  ),
                 ),
+                if (widget.isSelecting) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    widget.isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: widget.isSelected
+                        ? AppColors.primary
+                        : context.adaptiveTextSecondary,
+                    size: 24,
+                  ),
+                ] else ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: context.adaptiveTextSecondary,
+                  ),
+                ],
               ]),
             ),
           ),
@@ -842,6 +1059,51 @@ class _KlipCardState extends State<_KlipCard> {
                 height: 1,
                 color: Theme.of(context).dividerTheme.color ??
                     AppColors.border),
+
+            // ── Foto Klip (odometer + nota bensin) ───────
+            if (klip['foto_odometer_url'] != null ||
+                klip['foto_nota_url'] != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bukti Penutupan Klip',
+                      style: AppTextColors.style(context,
+                          fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (klip['foto_odometer_url'] != null)
+                          Expanded(
+                            child: _FotoKlip(
+                              label: 'Odometer',
+                              url: klip['foto_odometer_url'] as String,
+                            ),
+                          ),
+                        if (klip['foto_odometer_url'] != null &&
+                            klip['foto_nota_url'] != null)
+                          const SizedBox(width: 10),
+                        if (klip['foto_nota_url'] != null)
+                          Expanded(
+                            child: _FotoKlip(
+                              label: 'Nota Bensin',
+                              url: klip['foto_nota_url'] as String,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(
+                        height: 1,
+                        color: Theme.of(context).dividerTheme.color ??
+                            AppColors.border),
+                  ],
+                ),
+              ),
+
             if (perjalanan.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -883,6 +1145,161 @@ class _KlipCardState extends State<_KlipCard> {
     } catch (_) {
       return raw;
     }
+  }
+}
+
+// ── Trip Item ─────────────────────────────────────────────────────────────────
+
+// ── Foto Klip ─────────────────────────────────────────────────────────────────
+
+class _FotoKlip extends StatelessWidget {
+  final String label;
+  final String url;
+  const _FotoKlip({required this.label, required this.url});
+
+  void _showFullscreen(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (ctx, _, __) => _FotoFullscreen(url: url, label: label),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextColors.style(context,
+              fontSize: 11, color: context.adaptiveTextMuted),
+        ),
+        const SizedBox(height: 4),
+        GestureDetector(
+          onTap: () => _showFullscreen(context),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  url,
+                  height: 110,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (ctx, child, progress) => progress == null
+                      ? child
+                      : Container(
+                          height: 110,
+                          color:
+                              Theme.of(context).inputDecorationTheme.fillColor,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                  errorBuilder: (ctx, _, __) => Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).inputDecorationTheme.fillColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          color: context.adaptiveTextMuted, size: 28),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 6,
+                right: 6,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.zoom_in_rounded,
+                      color: Colors.white, size: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FotoFullscreen extends StatefulWidget {
+  final String url;
+  final String label;
+  const _FotoFullscreen({required this.url, required this.label});
+
+  @override
+  State<_FotoFullscreen> createState() => _FotoFullscreenState();
+}
+
+class _FotoFullscreenState extends State<_FotoFullscreen> {
+  final TransformationController _controller = TransformationController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _resetZoom() => _controller.value = Matrix4.identity();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context, rootNavigator: true).pop(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: Text(widget.label,
+              style: const TextStyle(fontSize: 14, color: Colors.white)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.zoom_out_map_rounded, color: Colors.white),
+              tooltip: 'Reset zoom',
+              onPressed: _resetZoom,
+            ),
+          ],
+        ),
+        body: Center(
+          child: InteractiveViewer(
+            transformationController: _controller,
+            minScale: 0.5,
+            maxScale: 5.0,
+            child: Image.network(
+              widget.url,
+              fit: BoxFit.contain,
+              loadingBuilder: (ctx, child, progress) => progress == null
+                  ? child
+                  : const Center(
+                      child: CircularProgressIndicator(color: Colors.white)),
+              errorBuilder: (ctx, _, __) => const Center(
+                child: Icon(Icons.broken_image_outlined,
+                    color: Colors.white54, size: 48),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -949,7 +1366,7 @@ class _TripItem extends StatelessWidget {
             GestureDetector(
               onTap: onExportPdf,
               child: const Icon(Icons.picture_as_pdf_outlined,
-                  size: 16, color: AppColors.primary),
+                  size: 16, color: Colors.green),
             ),
           ]),
           const SizedBox(height: 4),
@@ -963,6 +1380,30 @@ class _TripItem extends StatelessWidget {
             _row(context, 'PIC', trip['pic'] as String),
           if (penumpang.isNotEmpty)
             _row(context, 'Penumpang', penumpang.join(', ')),
+          if (trip['url_ttd_driver'] != null || trip['url_ttd_pic'] != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (trip['url_ttd_driver'] != null)
+                  Expanded(
+                    child: _FotoKlip(
+                      label: 'TTD Driver',
+                      url: trip['url_ttd_driver'] as String,
+                    ),
+                  ),
+                if (trip['url_ttd_driver'] != null &&
+                    trip['url_ttd_pic'] != null)
+                  const SizedBox(width: 10),
+                if (trip['url_ttd_pic'] != null)
+                  Expanded(
+                    child: _FotoKlip(
+                      label: 'TTD PIC',
+                      url: trip['url_ttd_pic'] as String,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

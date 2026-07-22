@@ -14,7 +14,7 @@ class App extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Land Transport Management System (LTMS)',
+      title: 'Land Transport Digital (LTD)',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

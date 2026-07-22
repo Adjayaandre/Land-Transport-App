@@ -94,7 +94,7 @@ class TripRepository {
     // Ambil semua klip dengan info kendaraan
     final klips = await _client
         .from('klip_perjalanan')
-        .select('id, id_kendaraan, status, dibuat_pada, ditutup_pada, odometer_tutup, kendaraan(nomor_polisi, merek, model)')
+        .select('id, id_kendaraan, status, dibuat_pada, ditutup_pada, odometer_tutup, foto_nota_url, foto_nota_path, foto_odometer_url, foto_odometer_path, kendaraan(nomor_polisi, merek, model)')
         .order('dibuat_pada', ascending: false);
 
     // Ambil semua perjalanan dengan id_klip
@@ -148,6 +148,22 @@ class TripRepository {
         .select('id');
     if ((result as List).isEmpty) {
       throw Exception('Gagal update odometer kendaraan. Cek RLS policy tabel kendaraan.');
+    }
+  }
+
+  /// Hapus klip beserta seluruh perjalanan di dalamnya.
+  Future<void> deleteKlip(String klipId) async {
+    // Hapus perjalanan yang terkait klip ini dulu (FK constraint)
+    await _client.from('perjalanan').delete().eq('id_klip', klipId);
+
+    final result = await _client
+        .from('klip_perjalanan')
+        .delete()
+        .eq('id', klipId)
+        .select();
+    if ((result as List).isEmpty) {
+      throw Exception(
+          'Tidak ada klip terhapus. Kemungkinan akses ditolak oleh RLS.');
     }
   }
 }

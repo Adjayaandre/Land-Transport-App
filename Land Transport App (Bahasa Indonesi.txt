@@ -20,3 +20,8 @@ Fitur:
 3. generate PDF dan Excel
 	- generate ke PDF dari setiap pengolompokan kegiatan, setiap kegiatan menjadi satu halaman, jadi nanti setiap satu kelompok kegiatan berisi beberapa halaman PDF 	yang berisi kegiatan 
 	- generate ke Excel dari seluruh data yang sudah difilter dari tanggal sekian hingga sekian
+
+
+NOTE: 
+
+- DRIVER DAN KARYAWAN BELUM BISA LOGIN
