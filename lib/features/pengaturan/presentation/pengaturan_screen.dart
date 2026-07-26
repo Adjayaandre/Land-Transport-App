@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_text_colors.dart';
 import '../../auth/domain/auth_provider.dart';
+import '../../../shared/app_nav_brand.dart';
 
 class PengaturanScreen extends ConsumerWidget {
   const PengaturanScreen({super.key});
@@ -15,27 +16,9 @@ class PengaturanScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'LTM',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text('Pengaturan Aplikasi'),
-          ],
-        ),
+        leadingWidth: 100,
+        leading: const AppNavBrandLeading(),
+        title: const Text('Pengaturan Aplikasi'),
       ),
       body: ListView(
         children: [

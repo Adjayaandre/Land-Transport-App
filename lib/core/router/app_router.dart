@@ -121,19 +121,37 @@ List<RouteBase> _shellRoutes() => [
       ),
     ];
 
+/// Menjembatani perubahan status auth ke GoRouter tanpa membangun ulang
+/// seluruh instance router (yang akan mereset stack navigasi & state widget,
+/// termasuk field yang sudah diisi user di LoginScreen).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen<AuthStatus>(
+      authProvider.select((s) => s.status),
+      (_, __) => notifyListeners(),
+    );
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  // Hanya rebuild router saat status login berubah, bukan saat profil di-update
-  ref.watch(authProvider.select((s) => s.status));
+  final refreshNotifier = _AuthRefreshNotifier(ref);
 
   final router = GoRouter(
+    refreshListenable: refreshNotifier,
     debugLogDiagnostics: kDebugMode,
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
       final path = state.uri.path;
       final status = ref.read(authProvider).status;
 
-      if (status == AuthStatus.initial || status == AuthStatus.loading) {
+      if (status == AuthStatus.initial) {
         return path != AppRoutes.splash ? AppRoutes.splash : null;
+      }
+      if (status == AuthStatus.loading) {
+        // Loading di sini bisa berarti proses submit login sedang berjalan
+        // (user sedang di /login). Jangan paksa pindah halaman, supaya
+        // form (email/password) tidak ter-reset saat menunggu hasil login.
+        return null;
       }
       if (status == AuthStatus.authenticated) {
         if (path == AppRoutes.splash || path == AppRoutes.login) {

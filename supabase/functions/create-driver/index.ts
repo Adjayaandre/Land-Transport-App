@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const allowedRoles = new Set(["driver", "admin", "superadmin", "karyawan"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -39,16 +41,22 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (profileError || profile?.peran !== "superadmin") {
-      return json({ error: "Hanya superadmin yang dapat menambah driver." }, 403);
+      return json({ error: "Hanya superadmin yang dapat menambah pengguna." }, 403);
     }
 
     const body = await req.json();
     const nama = (body.nama as string | undefined)?.trim();
     const email = (body.email as string | undefined)?.trim().toLowerCase();
     const password = body.password as string | undefined;
+    const peran = (body.peran as string | undefined)?.trim().toLowerCase() ??
+      "driver";
 
     if (!nama || !email || !password) {
       return json({ error: "Nama, email, dan password wajib diisi." }, 400);
+    }
+
+    if (!allowedRoles.has(peran)) {
+      return json({ error: "Role pengguna tidak valid." }, 400);
     }
 
     if (password.length < 6) {
@@ -67,12 +75,12 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           nama_lengkap: nama,
-          peran: "driver",
+          peran,
         },
       });
 
     if (createError || !created.user) {
-      return json({ error: createError?.message ?? "Gagal membuat akun driver." }, 400);
+      return json({ error: createError?.message ?? "Gagal membuat akun pengguna." }, 400);
     }
 
     const userId = created.user.id;
@@ -81,7 +89,7 @@ Deno.serve(async (req) => {
       {
         id: userId,
         nama_lengkap: nama,
-        peran: "driver",
+        peran,
         aktif: true,
       },
       { onConflict: "id" },
@@ -90,12 +98,12 @@ Deno.serve(async (req) => {
     if (insertError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
       return json(
-        { error: `Profil driver gagal disimpan: ${insertError.message}` },
+        { error: `Profil pengguna gagal disimpan: ${insertError.message}` },
         500,
       );
     }
 
-    return json({ id: userId, nama, email }, 200);
+    return json({ id: userId, nama, email, peran }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error";
     return json({ error: message }, 500);

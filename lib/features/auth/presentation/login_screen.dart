@@ -21,7 +21,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  String? _errorMessage;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeIn;
@@ -120,11 +119,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
     final scheme = Theme.of(context).colorScheme;
 
-    ref.listen<AuthState>(authProvider, (prev, next) {
-      if (next.status == AuthStatus.error && next.errorMessage != null) {
-        setState(() => _errorMessage = next.errorMessage);
-      } else if (next.status == AuthStatus.loading) {
-        setState(() => _errorMessage = null);
+    ref.listen<AuthStatus>(authProvider.select((s) => s.status), (prev, next) {
+      if (next == AuthStatus.error) {
+        _passwordController.clear();
       }
     });
 
@@ -231,7 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   TextSpan(
                     text: 'LT',
                     style: TextStyle(
-                      color: Color(0xFFF59E0B),
+                      color: Color.fromARGB(255, 248, 35, 35),
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -1,
@@ -256,7 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           'Land Transport Digital',
           style: AppTextColors.style(
             context,
-            fontSize: 13,
+            fontSize: 18,
             fontWeight: FontWeight.w500,
             color: Theme.of(context)
                 .colorScheme
@@ -270,6 +267,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Widget _buildForm(AuthState authState) {
+    final errorMessage =
+        authState.status == AuthStatus.error ? authState.errorMessage : null;
     return Form(
       key: _formKey,
       child: Column(
@@ -279,9 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             enabled: !authState.isLoading,
-            onChanged: (_) {
-              if (_errorMessage != null) setState(() => _errorMessage = null);
-            },
+            onChanged: (_) => ref.read(authProvider.notifier).clearError(),
             style: TextStyle(
               fontSize: 15,
               color: Theme.of(context).colorScheme.onSurface,
@@ -307,9 +304,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
             enabled: !authState.isLoading,
-            onChanged: (_) {
-              if (_errorMessage != null) setState(() => _errorMessage = null);
-            },
+            onChanged: (_) => ref.read(authProvider.notifier).clearError(),
             style: TextStyle(
               fontSize: 15,
               color: Theme.of(context).colorScheme.onSurface,
@@ -344,7 +339,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             onFieldSubmitted: (_) => _handleLogin(),
           ),
           const SizedBox(height: 24),
-          if (_errorMessage != null) ...[
+          if (errorMessage != null) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -360,7 +355,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    _errorMessage!,
+                    errorMessage,
                     style: const TextStyle(
                         fontSize: 13, color: AppColors.danger),
                   ),

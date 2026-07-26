@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_text_colors.dart';
+import '../../../shared/app_nav_brand.dart';
 import '../../../shared/empty_state.dart';
 import '../../../shared/vehicle_avatar.dart';
 import '../domain/kendaraan_model.dart';
@@ -45,39 +48,25 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
     final count = _selectedIds.length;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Hapus Kendaraan Terpilih'),
-        content: Text('Yakin ingin menghapus $count kendaraan dari daftar? '
-            'Tindakan ini tidak dapat dibatalkan.'),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.cancelled,
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => _DeleteConfirmDialog(
+        count: count,
+        itemLabel: 'kendaraan',
+        infoText: 'Riwayat perjalanan yang menggunakan kendaraan ini tetap '
+            'tersimpan (nopol tercatat di histori), hanya data kendaraannya '
+            'yang dihapus.',
       ),
     );
 
     if (confirm == true && mounted) {
       try {
-        final futures = _selectedIds.map((id) =>
-            ref.read(kendaraanRepositoryProvider).delete(id));
+        final futures = _selectedIds
+            .map((id) => ref.read(kendaraanRepositoryProvider).delete(id));
         await Future.wait(futures);
-        
+
         _exitSelectionMode();
         ref.invalidate(kendaraanListProvider);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$count kendaraan berhasil dihapus')),
@@ -106,12 +95,14 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        toolbarHeight: 78,
+        leadingWidth: 64,
         leading: _isSelecting
             ? IconButton(
                 icon: const Icon(Icons.close_rounded, size: 22),
                 onPressed: _exitSelectionMode,
               )
-            : null,
+            : const AppNavBrandLeading(),
         title: Text(_isSelecting
             ? '${_selectedIds.length} dipilih'
             : 'Kelola Kendaraan'),
@@ -119,7 +110,8 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
           if (_isSelecting)
             IconButton(
               tooltip: 'Hapus Terpilih',
-              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.cancelled),
+              icon: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.cancelled),
               onPressed: _confirmDeleteSelected,
             ),
         ],
@@ -181,8 +173,8 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => context
-                            .pushNamed(AppRoutes.tambahKendaraanName),
+                        onPressed: () =>
+                            context.pushNamed(AppRoutes.tambahKendaraanName),
                         icon: const Icon(Icons.add_rounded, size: 18),
                         label: const Text('Tambah Kendaraan'),
                         style: ElevatedButton.styleFrom(
@@ -200,8 +192,7 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
           // ── List ──────────────────────────────────────────
           Expanded(
             child: listAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Text('Gagal memuat data kendaraan',
                     style: AppTextColors.style(context)),
@@ -228,14 +219,11 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
 
                 return RefreshIndicator(
                   color: AppColors.primary,
-                  onRefresh: () async =>
-                      ref.invalidate(kendaraanListProvider),
+                  onRefresh: () async => ref.invalidate(kendaraanListProvider),
                   child: ListView.separated(
-                    padding:
-                        const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 10),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = filtered[index];
                       return _KendaraanCard(
@@ -328,7 +316,9 @@ class _KendaraanCard extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : statusBg,
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : statusBg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isSelected
@@ -379,41 +369,41 @@ class _KendaraanCard extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-          // Info rows
-          _infoRow(context, '${item.merek} ${item.model}'),
-          const SizedBox(height: 4),
-          if (item.warna != null && item.warna!.isNotEmpty)
-            _infoRow(context, 'Warna: ${item.warna}'),
-          const SizedBox(height: 4),
-          _infoRow(
-            context,
-            'Odometer Sekarang: ${item.odometerSekarang.toStringAsFixed(0)} KM',
-          ),
-          const SizedBox(height: 12),
+              // Info rows
+              _infoRow(context, '${item.merek} ${item.model}'),
+              const SizedBox(height: 4),
+              if (item.warna != null && item.warna!.isNotEmpty)
+                _infoRow(context, 'Warna: ${item.warna}'),
+              const SizedBox(height: 4),
+              _infoRow(
+                context,
+                'Odometer Sekarang: ${item.odometerSekarang.toStringAsFixed(0)} KM',
+              ),
+              const SizedBox(height: 12),
 
-          // Status badge
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                aktif ? 'TERSEDIA' : 'TIDAK TERSEDIA',
-                style: AppTextColors.style(
-                  context,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: statusColor,
+              // Status badge
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    aktif ? 'TERSEDIA' : 'TIDAK TERSEDIA',
+                    style: AppTextColors.style(
+                      context,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
       ),
     );
   }
@@ -426,4 +416,283 @@ class _KendaraanCard extends ConsumerWidget {
           color: context.adaptiveTextSecondary,
         ),
       );
+}
+
+/// Dialog konfirmasi hapus dengan desain yang tegas dan sengaja diberi
+/// sedikit friksi (tombol hapus terkunci beberapa detik) agar pengguna
+/// benar-benar sadar sebelum menekan konfirmasi.
+class _DeleteConfirmDialog extends StatefulWidget {
+  const _DeleteConfirmDialog({
+    required this.count,
+    required this.itemLabel,
+    required this.infoText,
+  });
+
+  final int count;
+  final String itemLabel;
+  final String infoText;
+
+  @override
+  State<_DeleteConfirmDialog> createState() => _DeleteConfirmDialogState();
+}
+
+class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
+  static const _lockSeconds = 3;
+  int _secondsLeft = _lockSeconds;
+  Timer? _timer;
+
+  bool get _isUnlocked => _secondsLeft <= 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _secondsLeft--;
+        if (_secondsLeft <= 0) timer.cancel();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.count;
+    final label =
+        count > 1 ? '$count ${widget.itemLabel}' : '1 ${widget.itemLabel}';
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header merah dengan ikon peringatan besar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.cancelled.withValues(alpha: 0.95),
+                      AppColors.cancelled,
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.warning_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Hapus $label?',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Isi peringatan
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Data yang dihapus tidak dapat dikembalikan. '
+                      'Tindakan ini bersifat permanen.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: Theme.of(context).textTheme.bodyLarge?.color ??
+                            context.adaptiveTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.infoText,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.4,
+                                color: context.adaptiveTextSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Tombol aksi
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context,
+                                rootNavigator: true)
+                            .pop(false),
+                        style: OutlinedButton.styleFrom(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(
+                            color: context.adaptiveTextSecondary
+                                .withValues(alpha: 0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color ??
+                                context.adaptiveTextSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _isUnlocked
+                            ? () => Navigator.of(context,
+                                    rootNavigator: true)
+                                .pop(true)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cancelled,
+                          disabledBackgroundColor:
+                              AppColors.cancelled.withValues(alpha: 0.4),
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor:
+                              Colors.white.withValues(alpha: 0.85),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _isUnlocked
+                              ? Row(
+                                  key: const ValueKey('unlocked'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.delete_forever_rounded,
+                                        size: 18),
+                                    SizedBox(width: 6),
+                                    Text('Ya, Hapus',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700)),
+                                  ],
+                                )
+                              : Row(
+                                  key: const ValueKey('locked'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation(
+                                                Colors.white),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Tunggu ${_secondsLeft}s',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

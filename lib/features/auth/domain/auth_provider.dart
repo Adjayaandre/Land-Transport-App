@@ -38,6 +38,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           (event.event == supabase.AuthChangeEvent.signedIn ||
               event.event == supabase.AuthChangeEvent.tokenRefreshed ||
               event.event == supabase.AuthChangeEvent.initialSession)) {
+        // Jangan timpa state error yang sedang ditampilkan ke pengguna
+        // dengan hasil event auth susulan (mis. tokenRefreshed telat).
+        if (state.status == AuthStatus.error) return;
         await _loadCurrentUser();
       }
     });
@@ -67,6 +70,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _repository.login(email, password);
       await _loadCurrentUser(notifyProfileMissing: true);
     } catch (e) {
+      // ignore: avoid_print
+      print('[AuthNotifier] Login gagal: $e');
       String message = 'Terjadi kesalahan. Silakan coba lagi.';
       final errorStr = e.toString().toLowerCase();
       if (errorStr.contains('invalid login credentials') ||
@@ -125,6 +130,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final user = await _repository.fetchUserProfile();
     if (user != null) {
+      if (!user.aktif) {
+        _suppressNextSignedOut = true;
+        try {
+          await _repository.logout();
+        } catch (_) {}
+        state = AuthState.error(
+          'Akun ini sudah dinonaktifkan. Hubungi admin jika ini tidak sesuai.',
+        );
+        return;
+      }
+
       // Mengizinkan semua role saat ini agar bisa dites di web
       const allowedWebRoles = {'admin', 'superadmin', 'driver', 'karyawan'};
       if (kIsWeb && !allowedWebRoles.contains(user.role)) {

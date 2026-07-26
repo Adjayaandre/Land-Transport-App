@@ -67,30 +67,32 @@ class AppShell extends ConsumerWidget {
         await _onWillPop(context);
       },
       child: Scaffold(
-      body: isDesktop
-          ? Row(
-              children: [
-                _AppSidebar(currentPath: currentPath, isSuperadmin: isSuperadmin),
-                Expanded(child: child),
-              ],
-            )
-          : child,
-      floatingActionButton: isDesktop || hideFab
-          ? const SizedBox(width: 56, height: 56)
-          : FloatingActionButton(
-              onPressed: () => context.go(AppRoutes.tambahPerjalanan),
-              backgroundColor: AppColors.primary,
-              elevation: 2,
-              highlightElevation: 4,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-            ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: isDesktop
-          ? null
-          : (isSuperadmin
-              ? _SuperadminNav(currentPath: currentPath)
-              : _DefaultNav(currentPath: currentPath)),
+        body: isDesktop
+            ? Row(
+                children: [
+                  _AppSidebar(
+                      currentPath: currentPath, isSuperadmin: isSuperadmin),
+                  Expanded(child: child),
+                ],
+              )
+            : child,
+        floatingActionButton: isDesktop || hideFab
+            ? const SizedBox(width: 56, height: 56)
+            : FloatingActionButton(
+                onPressed: () => context.go(AppRoutes.tambahPerjalanan),
+                backgroundColor: AppColors.primary,
+                elevation: 2,
+                highlightElevation: 4,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add_rounded,
+                    color: Colors.white, size: 28),
+              ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: isDesktop
+            ? null
+            : (isSuperadmin
+                ? _SuperadminNav(currentPath: currentPath)
+                : _DefaultNav(currentPath: currentPath)),
       ),
     );
   }
@@ -244,9 +246,7 @@ class _NavItem extends StatelessWidget {
           Icon(
             icon,
             size: 24,
-            color: active
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.5),
+            color: active ? Colors.white : Colors.white.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 2),
           Text(
@@ -348,31 +348,58 @@ class _AppSidebar extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.22),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Center(
-                      child: Text(
-                        'LT',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
+                    child: Center(
+                      child: RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'LT',
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 248, 35, 35),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'D',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'LTD',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                  Expanded(
+                    child: Text(
+                      'Land Transport Digital',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -442,7 +469,8 @@ class _SidebarTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
-        color: active ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+        color:
+            active ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -454,7 +482,9 @@ class _SidebarTile extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: active ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                  color: active
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.65),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

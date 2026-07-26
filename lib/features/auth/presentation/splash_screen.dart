@@ -139,7 +139,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
@@ -149,10 +149,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.local_shipping_rounded,
-                        size: 60,
-                        color: AppColors.primary,
+                      child: Center(
+                        child: RichText(
+                          text: const TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'LT',
+                                style: TextStyle(
+                                  color: Color.fromARGB(255, 248, 35, 35),
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'D',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -166,20 +185,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       opacity: _textOpacity,
                       child: Column(
                         children: [
-                          const Text(
-                            'LTD',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 6,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
                           Text(
                             'Land Transport Digital',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 22,
                               fontWeight: FontWeight.w400,
                               color: Colors.white.withValues(alpha: 0.85),
                               letterSpacing: 1.2,

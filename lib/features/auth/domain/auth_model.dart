@@ -4,6 +4,7 @@ class UserModel {
   final String email;     // dari Supabase Auth
   final String role;      // dari kolom: peran
   final String? avatarUrl;
+  final bool aktif;        // dari kolom: aktif (soft-delete flag)
 
   const UserModel({
     required this.id,
@@ -11,6 +12,7 @@ class UserModel {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.aktif = true,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class UserModel {
       email:     (json['email']        ?? '') as String,
       role:      (json['peran']        ?? json['role'] ?? 'driver') as String,
       avatarUrl: json['avatar_url']    as String?,
+      aktif:     (json['aktif'] as bool?) ?? true,
     );
   }
 
@@ -42,7 +45,7 @@ class UserModel {
   String get peranLabel {
     switch (role) {
       case 'admin':      return 'Administrator';
-      case 'supervisor': return 'Supervisor';
+      case 'superadmin': return 'Super Admin';
       case 'driver':     return 'Driver';
       case 'karyawan':   return 'Karyawan';
       default:           return role;

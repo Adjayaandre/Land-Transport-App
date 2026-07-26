@@ -24,4 +24,4 @@ Fitur:
 
 NOTE: 
 
-- DRIVER DAN KARYAWAN BELUM BISA LOGIN
+- fitur menghapus pengguna langsung dari aplikasi belum bisa

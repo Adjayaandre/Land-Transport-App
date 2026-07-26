@@ -48,27 +48,55 @@ class DashboardScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.25),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            width: 2),
                       ),
-                      child: const Icon(Icons.person_rounded, color: Colors.white, size: 26),
+                      child: const Icon(Icons.person_rounded,
+                          color: Colors.white, size: 26),
                     ),
                     Expanded(
                       child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'LTD',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RichText(
+                              text: const TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'LT',
+                                    style: TextStyle(
+                                      color: Color.fromARGB(255, 248, 35, 35),
+                                      fontSize: 35,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'D',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 35,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'Land Transport Digital',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -78,11 +106,12 @@ class DashboardScreen extends ConsumerWidget {
                       child: Container(
                         width: 40,
                         height: 40,
-                        decoration:   BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.00),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+                        child: const Icon(Icons.settings_outlined,
+                            color: Colors.white, size: 22),
                       ),
                     ),
                   ],
@@ -94,7 +123,6 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-
                   // ── Welcome Card (teal) ───────────────────────
                   _WelcomeCard(nama: user?.displayName ?? 'Pengguna'),
                   const SizedBox(height: 16),
@@ -113,8 +141,9 @@ class DashboardScreen extends ConsumerWidget {
                     builder: (context, ref, _) {
                       final kendaraanAsync = ref.watch(kendaraanStatusProvider);
                       return kendaraanAsync.when(
-                        loading: () => _ShimmerBox(height: 80),
-                        error: (_, __) => _errBox('Gagal memuat status kendaraan'),
+                        loading: () => const _ShimmerBox(height: 80),
+                        error: (_, __) =>
+                            _errBox('Gagal memuat status kendaraan'),
                         data: (list) {
                           if (list.isEmpty) {
                             return _emptyBox();
@@ -124,8 +153,10 @@ class DashboardScreen extends ConsumerWidget {
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: list.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 10),
-                              itemBuilder: (context, i) => _KendaraanStatusCard(kendaraan: list[i]),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
+                              itemBuilder: (context, i) =>
+                                  _KendaraanStatusCard(kendaraan: list[i]),
                             ),
                           );
                         },
@@ -158,7 +189,8 @@ class DashboardScreen extends ConsumerWidget {
                               color: AppColors.primary,
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
+                          const Icon(Icons.chevron_right_rounded,
+                              size: 18, color: AppColors.primary),
                         ]),
                       ],
                     ),
@@ -167,15 +199,20 @@ class DashboardScreen extends ConsumerWidget {
 
                   listAsync.when(
                     loading: () => Column(
-                      children: List.generate(3, (_) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _ShimmerBox(height: 64),
-                      )),
+                      children: List.generate(
+                          3,
+                          (_) => const Padding(
+                                padding: EdgeInsets.only(bottom: 10),
+                                child: _ShimmerBox(height: 64),
+                              )),
                     ),
                     error: (_, __) => _errBox('Gagal memuat perjalanan'),
                     data: (list) => list.isEmpty
                         ? _emptyBox()
-                        : Column(children: list.map((p) => _ActivityItem(trip: p)).toList()),
+                        : Column(
+                            children: list
+                                .map((p) => _ActivityItem(trip: p))
+                                .toList()),
                   ),
                 ]),
               ),
@@ -183,7 +220,7 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
-      );
+    );
   }
 
   static Widget _errBox(String msg) => Builder(
@@ -199,7 +236,8 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               msg,
-              style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveText),
+              style: AppTextColors.style(context,
+                  fontSize: 13, color: context.adaptiveText),
             ),
           ]),
         ),
@@ -210,11 +248,13 @@ class DashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 40),
           alignment: Alignment.center,
           child: Column(children: [
-            Icon(Icons.inbox_rounded, size: 48, color: context.adaptiveTextMuted),
+            Icon(Icons.inbox_rounded,
+                size: 48, color: context.adaptiveTextMuted),
             const SizedBox(height: 10),
             Text(
               'Belum ada perjalanan',
-              style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveText),
+              style: AppTextColors.style(context,
+                  fontSize: 13, color: context.adaptiveText),
             ),
           ]),
         ),
@@ -314,7 +354,8 @@ class _KendaraanStatusCard extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+              decoration:
+                  BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
             Text(
@@ -381,15 +422,20 @@ class _ActivityItem extends StatelessWidget {
               Expanded(
                 child: Text(
                   trip.nomorPolisi,
-                  style: AppTextColors.style(context, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: AppTextColors.style(context,
+                      fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ),
               Row(children: [
-                const Icon(Icons.check_circle, size: 14, color: AppColors.completed),
+                const Icon(Icons.check_circle,
+                    size: 14, color: AppColors.completed),
                 const SizedBox(width: 4),
                 Text(
                   'Completed',
-                  style: AppTextColors.style(context, fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.completed),
+                  style: AppTextColors.style(context,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.completed),
                 ),
               ]),
             ],
@@ -397,23 +443,27 @@ class _ActivityItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Dari: ${trip.titikJemput} → Ke: ${trip.titikTujuan}',
-            style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveTextSecondary),
+            style: AppTextColors.style(context,
+                fontSize: 13, color: context.adaptiveTextSecondary),
           ),
           const SizedBox(height: 4),
           if (trip.jarak != null)
             Text(
               'Jarak: ${trip.jarak!.toStringAsFixed(0)} KM',
-              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+              style: AppTextColors.style(context,
+                  fontSize: 12, color: context.adaptiveTextSecondary),
             ),
           if (trip.waktuTiba != null)
             Text(
               'Waktu Selesai: ${trip.waktuTiba}',
-              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+              style: AppTextColors.style(context,
+                  fontSize: 12, color: context.adaptiveTextSecondary),
             ),
           if (trip.penumpang.isNotEmpty)
             Text(
               'Penumpang: ${trip.penumpang.join(', ')}',
-              style: AppTextColors.style(context, fontSize: 12, color: context.adaptiveTextSecondary),
+              style: AppTextColors.style(context,
+                  fontSize: 12, color: context.adaptiveTextSecondary),
             ),
         ],
       ),
@@ -431,27 +481,33 @@ class _ShimmerBox extends StatefulWidget {
   State<_ShimmerBox> createState() => _ShimmerBoxState();
 }
 
-class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final Animation<double> _a;
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
       ..repeat(reverse: true);
     _a = Tween<double>(begin: 0.3, end: 0.9).animate(_c);
   }
 
   @override
-  void dispose() { _c.dispose(); super.dispose(); }
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => FadeTransition(
         opacity: _a,
         child: Container(
           height: widget.height,
-          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+              color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
         ),
       );
 }

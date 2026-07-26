@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/app_text_colors.dart';
+import '../../../shared/app_nav_brand.dart';
 import '../../auth/domain/auth_provider.dart';
 
 class ProfilScreen extends ConsumerWidget {
@@ -13,6 +14,9 @@ class ProfilScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 78,
+        leadingWidth: 64,
+        leading: const AppNavBrandLeading(),
         title: const Text('Profil Saya'),
         centerTitle: true,
       ),
@@ -34,19 +38,24 @@ class ProfilScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.primary.withValues(alpha: 0.1),
-                            border: Border.all(color: AppColors.primary, width: 2.5),
+                            border: Border.all(
+                                color: AppColors.primary, width: 2.5),
                           ),
-                          child: const Icon(Icons.person_rounded, size: 50, color: AppColors.primary),
+                          child: const Icon(Icons.person_rounded,
+                              size: 50, color: AppColors.primary),
                         ),
                         const SizedBox(height: 14),
                         Text(
                           _peranLabel(user?.role),
-                          style: AppTextColors.style(context, fontSize: 13, color: context.adaptiveTextSecondary),
+                          style: AppTextColors.style(context,
+                              fontSize: 13,
+                              color: context.adaptiveTextSecondary),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           user?.displayName ?? 'Pengguna',
-                          style: AppTextColors.style(context, fontSize: 18, fontWeight: FontWeight.w700),
+                          style: AppTextColors.style(context,
+                              fontSize: 18, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -102,10 +111,13 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTextColors.style(context, fontSize: 14, color: context.adaptiveTextSecondary)),
+        Text(label,
+            style: AppTextColors.style(context,
+                fontSize: 14, color: context.adaptiveTextSecondary)),
         Text(
           value,
-          style: AppTextColors.style(context, fontSize: 14, fontWeight: FontWeight.w500),
+          style: AppTextColors.style(context,
+              fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ],
     );

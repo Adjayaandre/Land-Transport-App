@@ -91,10 +91,15 @@ class TripRepository {
 
   /// Fetch semua klip beserta perjalanannya, diurutkan terbaru dulu.
   Future<List<Map<String, dynamic>>> fetchKlipDenganPerjalanan() async {
-    // Ambil semua klip dengan info kendaraan
+    // Ambil semua klip dengan info kendaraan (+ kolom snapshot sebagai fallback
+    // kalau kendaraannya sudah dihapus dari tabel kendaraan)
     final klips = await _client
         .from('klip_perjalanan')
-        .select('id, id_kendaraan, status, dibuat_pada, ditutup_pada, odometer_tutup, foto_nota_url, foto_nota_path, foto_odometer_url, foto_odometer_path, kendaraan(nomor_polisi, merek, model)')
+        .select(
+            'id, id_kendaraan, status, dibuat_pada, ditutup_pada, odometer_tutup, '
+            'foto_nota_url, foto_nota_path, foto_odometer_url, foto_odometer_path, '
+            'nomor_polisi_snapshot, merek_snapshot, model_snapshot, '
+            'kendaraan(nomor_polisi, merek, model)')
         .order('dibuat_pada', ascending: false);
 
     // Ambil semua perjalanan dengan id_klip
@@ -112,11 +117,19 @@ class TripRepository {
       }
     }
 
-    // Gabungkan
+    // Gabungkan, dengan fallback ke snapshot kalau kendaraan sudah dihapus
     return (klips as List).map((k) {
       final id = k['id'] as String;
+      final map = Map<String, dynamic>.from(k);
+      final kendaraan = map['kendaraan'] as Map<String, dynamic>?;
+      map['kendaraan'] = {
+        'nomor_polisi':
+            kendaraan?['nomor_polisi'] ?? map['nomor_polisi_snapshot'],
+        'merek': kendaraan?['merek'] ?? map['merek_snapshot'],
+        'model': kendaraan?['model'] ?? map['model_snapshot'],
+      };
       return {
-        ...Map<String, dynamic>.from(k),
+        ...map,
         'perjalanan': perjalananPerKlip[id] ?? [],
       };
     }).toList();
