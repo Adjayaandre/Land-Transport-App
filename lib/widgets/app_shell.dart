@@ -351,11 +351,8 @@ class _AppSidebar extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.22),
-                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.12),
@@ -364,28 +361,13 @@ class _AppSidebar extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: RichText(
-                        text: const TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'LT',
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 248, 35, 35),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'D',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/logo_ltd.png',
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

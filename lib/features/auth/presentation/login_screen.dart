@@ -211,7 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           width: 90,
           height: 90,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -221,30 +221,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ],
           ),
-          child: Center(
-            child: RichText(
-              text: const TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'LT',
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 248, 35, 35),
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  TextSpan(
-                    text: 'D',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ],
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.asset(
+              'assets/images/logo_ltd.png',
+              width: 90,
+              height: 90,
+              fit: BoxFit.contain,
             ),
           ),
         ),

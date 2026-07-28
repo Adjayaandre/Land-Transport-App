@@ -266,7 +266,15 @@ class DriverRepository {
           .eq('id', userId)
           .maybeSingle();
 
-      if (existing != null) return;
+      if (existing != null) {
+        // Baris sudah ada (kemungkinan dibuat trigger dengan peran default).
+        // Update agar peran sesuai pilihan yang sebenarnya.
+        await _client.from('pengguna').update({
+          'nama_lengkap': nama,
+          'peran': peran,
+        }).eq('id', userId);
+        return;
+      }
 
       await _client.from('pengguna').insert({
         'id': userId,

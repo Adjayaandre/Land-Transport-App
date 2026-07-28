@@ -630,23 +630,12 @@ class _RiwayatPerjalananScreenState
     if (!mounted) return;
     final mode = await showDialog<ExportMode>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ekspor Excel'),
-        content: const Text('Pilih cara ekspor file:'),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.download_rounded),
-            label: const Text('Download'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true)
-                .pop(ExportMode.download),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.share_rounded, size: 18),
-            label: const Text('Bagikan'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true)
-                .pop(ExportMode.bagikan),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => const _ExportModeDialog(
+        icon: Icons.table_chart_rounded,
+        accentColor: Color(0xFF16A34A),
+        title: 'Ekspor ke Excel',
+        subtitle: 'Rekap data perjalanan pada rentang tanggal yang dipilih',
       ),
     );
 
@@ -737,21 +726,12 @@ class _RiwayatPerjalananScreenState
       Map<String, dynamic> trip, Map<String, dynamic>? kendaraan) async {
     final mode = await showDialog<ExportMode>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ekspor PDF'),
-        content: const Text('Pilih cara ekspor file:'),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.download_rounded),
-            label: const Text('Download'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(ExportMode.download),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.share_rounded, size: 18),
-            label: const Text('Bagikan'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(ExportMode.bagikan),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => const _ExportModeDialog(
+        icon: Icons.picture_as_pdf_rounded,
+        accentColor: Color(0xFFDC2626),
+        title: 'Ekspor PDF Perjalanan',
+        subtitle: 'Dokumen lengkap satu perjalanan siap dicetak',
       ),
     );
 
@@ -804,23 +784,12 @@ class _RiwayatPerjalananScreenState
 
     final mode = await showDialog<ExportMode>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ekspor PDF Klip'),
-        content: const Text('Pilih cara ekspor file:'),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.download_rounded),
-            label: const Text('Download'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true)
-                .pop(ExportMode.download),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.share_rounded, size: 18),
-            label: const Text('Bagikan'),
-            onPressed: () => Navigator.of(ctx, rootNavigator: true)
-                .pop(ExportMode.bagikan),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => const _ExportModeDialog(
+        icon: Icons.picture_as_pdf_rounded,
+        accentColor: Color(0xFFDC2626),
+        title: 'Ekspor PDF Klip',
+        subtitle: 'Laporan seluruh perjalanan dalam satu siklus BBM',
       ),
     );
 
@@ -1429,4 +1398,257 @@ class _TripItem extends StatelessWidget {
           ],
         ),
       );
+}
+
+/// Dialog pilihan mode ekspor (Download / Bagikan) dengan desain kartu besar
+/// yang nyaman disentuh, dilengkapi ikon dan deskripsi singkat tiap opsi.
+class _ExportModeDialog extends StatelessWidget {
+  const _ExportModeDialog({
+    required this.icon,
+    required this.accentColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final Color accentColor;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? context.adaptiveTextSecondary;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header dengan ikon besar sesuai jenis file
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      accentColor.withValues(alpha: 0.9),
+                      accentColor,
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 34),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Pilihan mode: dua kartu besar yang mudah disentuh
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Text(
+                  'Pilih cara menyimpan file',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: context.adaptiveTextSecondary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                child: Column(
+                  children: [
+                    _ExportOptionTile(
+                      icon: Icons.download_rounded,
+                      color: accentColor,
+                      title: 'Download',
+                      subtitle: 'Simpan file ke perangkat ini',
+                      isDark: isDark,
+                      textColor: textColor,
+                      onTap: () => Navigator.of(context, rootNavigator: true)
+                          .pop(ExportMode.download),
+                    ),
+                    const SizedBox(height: 10),
+                    _ExportOptionTile(
+                      icon: Icons.ios_share_rounded,
+                      color: accentColor,
+                      title: 'Bagikan',
+                      subtitle: 'Kirim langsung lewat WhatsApp, email, dll.',
+                      isDark: isDark,
+                      textColor: textColor,
+                      onTap: () => Navigator.of(context, rootNavigator: true)
+                          .pop(ExportMode.bagikan),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Tombol batal
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: TextStyle(
+                        color: context.adaptiveTextSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Satu opsi ekspor berbentuk kartu besar dengan ikon, judul, dan deskripsi
+/// singkat, agar pengguna mudah membedakan Download vs Bagikan.
+class _ExportOptionTile extends StatelessWidget {
+  const _ExportOptionTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final bool isDark;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : color.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: color.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.adaptiveTextSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: context.adaptiveTextSecondary,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -16,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final listAsync = ref.watch(perjalananTerbaruProvider);
+    final greeting = _greetingForHour(DateTime.now().hour);
 
     void refresh() {
       ref.invalidate(dashboardStatsProvider);
@@ -29,90 +30,133 @@ class DashboardScreen extends ConsumerWidget {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // ── Header biru ─────────────────────────────────────
+            // ── Header ──────────────────────────────────────────
             SliverToBoxAdapter(
               child: Container(
-                color: AppColors.primary,
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 12,
-                  left: 16,
-                  right: 16,
-                  bottom: 20,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, Color(0xFF1E4FA8)],
+                  ),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(28),
+                  ),
                 ),
-                child: Row(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 20,
+                  right: 16,
+                  bottom: 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            width: 2),
-                      ),
-                      child: const Icon(Icons.person_rounded,
-                          color: Colors.white, size: 26),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            RichText(
-                              text: const TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'LT',
-                                    style: TextStyle(
-                                      color: Color.fromARGB(255, 248, 35, 35),
-                                      fontSize: 35,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: 'D',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 35,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
+                    Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
                               ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/images/logo_ltd.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
                             ),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                'Land Transport Digital',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Land Transport Digital',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => context.go(AppRoutes.pengaturan),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.settings_outlined,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            _initials(user?.displayName),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                greeting,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.1,
+                                  color: Colors.white.withValues(alpha: 0.85),
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                user?.displayName ?? 'Pengguna',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                    // Pengaturan
-                    GestureDetector(
-                      onTap: () => context.go(AppRoutes.pengaturan),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.00),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.settings_outlined,
-                            color: Colors.white, size: 22),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -124,7 +168,7 @@ class DashboardScreen extends ConsumerWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // ── Welcome Card (teal) ───────────────────────
-                  _WelcomeCard(nama: user?.displayName ?? 'Pengguna'),
+                  const _TodayBanner(),
                   const SizedBox(height: 16),
 
                   // ── Status Kendaraan ──────────────────────────
@@ -149,7 +193,7 @@ class DashboardScreen extends ConsumerWidget {
                             return _emptyBox();
                           }
                           return SizedBox(
-                            height: 90,
+                            height: 108,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: list.length,
@@ -227,17 +271,29 @@ class DashboardScreen extends ConsumerWidget {
         builder: (context) => Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.red[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red[200]!),
+            color: Colors.red.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
           ),
           child: Row(children: [
-            Icon(Icons.error_outline, color: Colors.red[700], size: 18),
-            const SizedBox(width: 8),
-            Text(
-              msg,
-              style: AppTextColors.style(context,
-                  fontSize: 13, color: context.adaptiveText),
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded,
+                  color: Colors.red, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                msg,
+                style: AppTextColors.style(context,
+                    fontSize: 13, color: context.adaptiveText),
+              ),
             ),
           ]),
         ),
@@ -245,31 +301,80 @@ class DashboardScreen extends ConsumerWidget {
 
   static Widget _emptyBox() => Builder(
         builder: (context) => Container(
-          padding: const EdgeInsets.symmetric(vertical: 40),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 32),
           alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: context.adaptiveTextSecondary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(children: [
-            Icon(Icons.inbox_rounded,
-                size: 48, color: context.adaptiveTextMuted),
-            const SizedBox(height: 10),
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.adaptiveTextSecondary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.inbox_rounded,
+                  size: 28, color: context.adaptiveTextMuted),
+            ),
+            const SizedBox(height: 12),
             Text(
               'Belum ada perjalanan',
               style: AppTextColors.style(context,
-                  fontSize: 13, color: context.adaptiveText),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: context.adaptiveText),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Aktivitas perjalanan akan muncul di sini',
+              style: AppTextColors.style(context,
+                  fontSize: 12, color: context.adaptiveTextMuted),
             ),
           ]),
         ),
       );
 }
 
-class _WelcomeCard extends StatelessWidget {
-  final String nama;
-  const _WelcomeCard({required this.nama});
+class _TodayBanner extends StatelessWidget {
+  const _TodayBanner();
+
+  static const _hariIndo = [
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    "Jum'at",
+    'Sabtu',
+    'Minggu',
+  ];
+  static const _bulanIndo = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final tanggal =
+        '${_hariIndo[now.weekday - 1]}, ${now.day} ${_bulanIndo[now.month - 1]} ${now.year}';
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0F9B8E), Color(0xFF14B8A6)],
@@ -289,30 +394,48 @@ class _WelcomeCard extends StatelessWidget {
         children: [
           Positioned(
             right: -10,
-            top: -10,
+            top: -14,
             child: Icon(
               Icons.alt_route_rounded,
-              size: 90,
+              size: 84,
               color: Colors.white.withValues(alpha: 0.18),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                'Selamat Datang,',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.9),
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: const Icon(Icons.calendar_today_rounded,
+                    color: Colors.white, size: 20),
               ),
-              const SizedBox(height: 2),
-              Text(
-                '$nama!',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tanggal,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Semoga perjalanan hari ini lancar dan aman.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -341,13 +464,21 @@ class _KendaraanStatusCard extends StatelessWidget {
         .join(' ');
 
     return Container(
-      width: 140,
+      width: 148,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
@@ -358,29 +489,35 @@ class _KendaraanStatusCard extends StatelessWidget {
                   BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
-            Text(
-              aktif ? 'Tersedia' : 'Tidak Tersedia',
-              style: AppTextColors.style(
-                context,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: textColor,
+            Expanded(
+              child: Text(
+                aktif ? 'Tersedia' : 'Tidak Tersedia',
+                overflow: TextOverflow.ellipsis,
+                style: AppTextColors.style(
+                  context,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
               ),
             ),
           ]),
           const SizedBox(height: 8),
           Text(
             kendaraan['nomor_polisi'] as String? ?? '-',
+            overflow: TextOverflow.ellipsis,
             style: AppTextColors.style(
               context,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w800,
               color: textColor,
             ),
           ),
-          if (merekModel.isNotEmpty)
+          if (merekModel.isNotEmpty) ...[
+            const SizedBox(height: 2),
             Text(
               merekModel,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextColors.style(
                 context,
@@ -388,6 +525,7 @@ class _KendaraanStatusCard extends StatelessWidget {
                 color: textColor,
               ),
             ),
+          ],
         ],
       ),
     );
@@ -402,69 +540,158 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        borderRadius: BorderRadius.circular(16),
+        border: const Border(
+          left: BorderSide(color: AppColors.completed, width: 4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                VehicleAvatar(aktif: trip.selesai, size: 36, iconSize: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: RichText(
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: AppTextColors.style(context,
+                          fontSize: 13.5, fontWeight: FontWeight.w700),
+                      children: [
+                        TextSpan(text: trip.nomorPolisi),
+                        if (trip.merekModel.isNotEmpty)
+                          TextSpan(
+                            text: ' ${trip.merekModel}',
+                            style: AppTextColors.style(
+                              context,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: context.adaptiveTextSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.completed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle,
+                          size: 13, color: AppColors.completed),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Selesai',
+                        style: AppTextColors.style(context,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.completed),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.alt_route_rounded,
+                    size: 15, color: context.adaptiveTextSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${trip.titikJemput}  →  ${trip.titikTujuan}',
+                    style: AppTextColors.style(context,
+                        fontSize: 13, color: context.adaptiveTextSecondary),
+                  ),
+                ),
+              ],
+            ),
+            if (trip.jarak != null ||
+                trip.waktuTiba != null ||
+                trip.penumpang.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (trip.jarak != null)
+                    _InfoChip(
+                      icon: Icons.speed_rounded,
+                      label: '${trip.jarak!.toStringAsFixed(0)} KM',
+                    ),
+                  if (trip.waktuTiba != null)
+                    _InfoChip(
+                      icon: Icons.schedule_rounded,
+                      label: _formatJam(trip.waktuTiba!),
+                    ),
+                  if (trip.penumpang.isNotEmpty)
+                    _InfoChip(
+                      icon: Icons.people_alt_rounded,
+                      label: trip.penumpang.length > 1
+                          ? '${trip.penumpang.first} +${trip.penumpang.length - 1}'
+                          : trip.penumpang.first,
+                    ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: context.adaptiveTextSecondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              VehicleAvatar(aktif: trip.selesai, size: 36, iconSize: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  trip.nomorPolisi,
-                  style: AppTextColors.style(context,
-                      fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-              ),
-              Row(children: [
-                const Icon(Icons.check_circle,
-                    size: 14, color: AppColors.completed),
-                const SizedBox(width: 4),
-                Text(
-                  'Completed',
-                  style: AppTextColors.style(context,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.completed),
-                ),
-              ]),
-            ],
-          ),
-          const SizedBox(height: 8),
+          Icon(icon, size: 13, color: context.adaptiveTextSecondary),
+          const SizedBox(width: 4),
           Text(
-            'Dari: ${trip.titikJemput} → Ke: ${trip.titikTujuan}',
+            label,
+            overflow: TextOverflow.ellipsis,
             style: AppTextColors.style(context,
-                fontSize: 13, color: context.adaptiveTextSecondary),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: context.adaptiveTextSecondary),
           ),
-          const SizedBox(height: 4),
-          if (trip.jarak != null)
-            Text(
-              'Jarak: ${trip.jarak!.toStringAsFixed(0)} KM',
-              style: AppTextColors.style(context,
-                  fontSize: 12, color: context.adaptiveTextSecondary),
-            ),
-          if (trip.waktuTiba != null)
-            Text(
-              'Waktu Selesai: ${trip.waktuTiba}',
-              style: AppTextColors.style(context,
-                  fontSize: 12, color: context.adaptiveTextSecondary),
-            ),
-          if (trip.penumpang.isNotEmpty)
-            Text(
-              'Penumpang: ${trip.penumpang.join(', ')}',
-              style: AppTextColors.style(context,
-                  fontSize: 12, color: context.adaptiveTextSecondary),
-            ),
         ],
       ),
     );
@@ -507,7 +734,39 @@ class _ShimmerBoxState extends State<_ShimmerBox>
         child: Container(
           height: widget.height,
           decoration: BoxDecoration(
-              color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+              color: context.adaptiveTextSecondary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12)),
         ),
       );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Memotong format waktu "HH:MM:SS" (atau ISO time) menjadi "HH:MM".
+String _formatJam(String raw) {
+  final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(raw.trim());
+  if (match != null) {
+    final h = match.group(1)!.padLeft(2, '0');
+    final m = match.group(2)!;
+    return '$h:$m';
+  }
+  return raw;
+}
+
+String _greetingForHour(int hour) {
+  if (hour >= 4 && hour < 11) return 'Selamat pagi';
+  if (hour >= 11 && hour < 15) return 'Selamat siang';
+  if (hour >= 15 && hour < 18) return 'Selamat sore';
+  return 'Selamat malam';
+}
+
+String _initials(String? name) {
+  final trimmed = name?.trim();
+  if (trimmed == null || trimmed.isEmpty) return '?';
+  final parts = trimmed.split(RegExp(r'\s+'));
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
+  return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+      .toUpperCase();
 }

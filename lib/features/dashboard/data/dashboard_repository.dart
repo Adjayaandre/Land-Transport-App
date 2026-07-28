@@ -42,6 +42,44 @@ class DashboardRepository {
         .select()
         .order('dibuat_pada', ascending: false)
         .limit(5);
-    return (data as List).map((e) => PerjalananSingkat.fromJson(e)).toList();
+    final rows = List<Map<String, dynamic>>.from(data as List);
+
+    // View `ringkasan_perjalanan` tidak menyertakan merek/model kendaraan,
+    // jadi ambil terpisah dari tabel `kendaraan` berdasarkan nomor polisi
+    // lalu gabungkan ke setiap baris sebelum di-parse.
+    // Nomor polisi dinormalisasi (trim + uppercase) agar perbedaan spasi
+    // atau huruf besar/kecil antar tabel tidak menyebabkan gagal cocok.
+    String normalize(String s) => s.trim().toUpperCase();
+
+    final nomorPolisiList = rows
+        .map((r) => r['nomor_polisi'] as String?)
+        .whereType<String>()
+        .map(normalize)
+        .toSet()
+        .toList();
+
+    final kendaraanByNopol = <String, Map<String, dynamic>>{};
+    if (nomorPolisiList.isNotEmpty) {
+      final kendaraanRows = await _db
+          .from('kendaraan')
+          .select('nomor_polisi, merek, model')
+          .inFilter('nomor_polisi', nomorPolisiList);
+      for (final k in List<Map<String, dynamic>>.from(kendaraanRows as List)) {
+        final nopol = k['nomor_polisi'] as String?;
+        if (nopol != null) kendaraanByNopol[normalize(nopol)] = k;
+      }
+    }
+
+    return rows.map((r) {
+      final rawNopol = r['nomor_polisi'] as String?;
+      final kendaraan =
+          rawNopol != null ? kendaraanByNopol[normalize(rawNopol)] : null;
+      final merged = {
+        ...r,
+        if (kendaraan != null) 'merek': kendaraan['merek'],
+        if (kendaraan != null) 'model': kendaraan['model'],
+      };
+      return PerjalananSingkat.fromJson(merged);
+    }).toList();
   }
 }
