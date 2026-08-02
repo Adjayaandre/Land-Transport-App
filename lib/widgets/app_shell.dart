@@ -6,23 +6,12 @@ import '../features/auth/domain/auth_provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
 
-// Route-route yang dianggap "root" — tidak ada halaman sebelumnya di stack
-const _rootRoutes = {
-  AppRoutes.dashboard,
-  AppRoutes.kelolaKendaraan,
-  AppRoutes.kelolaPengguna,
-  AppRoutes.profil,
-};
-
 class AppShell extends ConsumerWidget {
   final Widget child;
   final String currentPath;
   const AppShell({super.key, required this.child, required this.currentPath});
 
-  Future<bool> _onWillPop(BuildContext context) async {
-    // Hanya intercept jika di root route
-    if (!_rootRoutes.contains(currentPath)) return true;
-
+  Future<void> _onWillPop(BuildContext context) async {
     final keluar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -49,7 +38,6 @@ class AppShell extends ConsumerWidget {
     if (keluar == true) {
       SystemNavigator.pop();
     }
-    return false; // selalu false, keluar dihandle manual
   }
 
   @override
@@ -59,12 +47,19 @@ class AppShell extends ConsumerWidget {
     final isSuperadmin = role == 'superadmin';
     final hideFab = currentPath == AppRoutes.tambahPerjalanan;
     final isDesktop = MediaQuery.of(context).size.width >= 600;
+    final isDashboard = currentPath == AppRoutes.dashboard;
 
     return PopScope(
+      // Selalu blokir pop bawaan: di Dashboard tampilkan dialog konfirmasi
+      // keluar, di halaman lain arahkan langsung ke Dashboard.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        await _onWillPop(context);
+        if (isDashboard) {
+          await _onWillPop(context);
+        } else {
+          context.go(AppRoutes.dashboard);
+        }
       },
       child: Scaffold(
         body: isDesktop
