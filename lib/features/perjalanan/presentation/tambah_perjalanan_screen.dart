@@ -43,6 +43,7 @@ class _TambahPerjalananScreenState
   List<Map<String, dynamic>> _daftarKendaraan = [];
   String? _kendaraanId;
   double? _kendaraanOdometerSekarang;
+  bool _odometerSamaWarning = false;
   bool _loadingKendaraan = true;
 
   // Klip
@@ -466,9 +467,16 @@ class _TambahPerjalananScreenState
       return;
     }
 
-    if (_sigDriverStrokes.isEmpty || _sigPicStrokes.isEmpty) {
+    final picDiisi = _picController.text.trim().isNotEmpty;
+
+    if (_sigDriverStrokes.isEmpty ||
+        (picDiisi && _sigPicStrokes.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tanda tangan driver dan PIC wajib diisi.')),
+        SnackBar(
+          content: Text(picDiisi
+              ? 'Tanda tangan driver dan PIC wajib diisi.'
+              : 'Tanda tangan driver wajib diisi.'),
+        ),
       );
       return;
     }
@@ -501,12 +509,14 @@ class _TambahPerjalananScreenState
         strokes: _sigDriverStrokes,
         namaPenanda: authUser.name,
       );
-      await _saveTandaTangan(
-        perjalananId: perjalananId,
-        jenis: 'pic',
-        strokes: _sigPicStrokes,
-        namaPenanda: _picController.text.trim(),
-      );
+      if (picDiisi && _sigPicStrokes.isNotEmpty) {
+        await _saveTandaTangan(
+          perjalananId: perjalananId,
+          jenis: 'pic',
+          strokes: _sigPicStrokes,
+          namaPenanda: _picController.text.trim(),
+        );
+      }
 
       if (input.odometerAkhir != null) {
         await ref.read(tripRepositoryProvider).updateOdometerKendaraan(
@@ -597,13 +607,12 @@ class _TambahPerjalananScreenState
               const SizedBox(height: 16),
 
               // ── PIC ───────────────────────────────────────
-              _sectionLabel('Person In Charge (PIC)'),
+              _sectionLabel('Person In Charge (PIC)', optional: true),
               _buildTextField(
                 controller: _picController,
-                hint: 'Nama PIC',
+                hint: 'Nama PIC (opsional)',
                 prefixIcon: Icons.person_outline_rounded,
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 16),
 
@@ -676,6 +685,15 @@ class _TambahPerjalananScreenState
                 controller: _odometerAkhirController,
                 hint: 'KM akhir',
                 keyboardType: TextInputType.number,
+                onChanged: (v) {
+                  final value = double.tryParse(v.trim());
+                  final sama = value != null &&
+                      _kendaraanOdometerSekarang != null &&
+                      value == _kendaraanOdometerSekarang;
+                  if (sama != _odometerSamaWarning) {
+                    setState(() => _odometerSamaWarning = sama);
+                  }
+                },
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
                   final value = double.tryParse(v.trim());
@@ -687,6 +705,24 @@ class _TambahPerjalananScreenState
                   return null;
                 },
               ),
+              if (_odometerSamaWarning)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          size: 14, color: Color(0xFFF59E0B)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Odometer sama dengan odometer sekarang. Pastikan ini benar (misalnya perjalanan dekat).',
+                          style: AppTextColors.style(context,
+                              fontSize: 11, color: const Color(0xFFF59E0B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 16),
 
               // ── Deskripsi ─────────────────────────────────
@@ -708,15 +744,17 @@ class _TambahPerjalananScreenState
               ),
               const SizedBox(height: 16),
 
-              // ── Tanda Tangan PIC ──────────────────────────
-              _sectionLabel('Tanda Tangan PIC'),
-              const SizedBox(height: 8),
-              SignaturePad(
-                strokes: _sigPicStrokes,
-                onDrawStart: () => setState(() => _scrollLocked = true),
-                onDrawEnd: () => setState(() => _scrollLocked = false),
-              ),
-              const SizedBox(height: 24),
+              // ── Tanda Tangan PIC (hanya jika PIC diisi) ───
+              if (_picController.text.trim().isNotEmpty) ...[
+                _sectionLabel('Tanda Tangan PIC'),
+                const SizedBox(height: 8),
+                SignaturePad(
+                  strokes: _sigPicStrokes,
+                  onDrawStart: () => setState(() => _scrollLocked = true),
+                  onDrawEnd: () => setState(() => _scrollLocked = false),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // ── Hapus Tanda Tangan ────────────────────────
               Center(
@@ -998,6 +1036,17 @@ class _TambahPerjalananScreenState
           );
           _kendaraanOdometerSekarang =
               (selected['odometer_sekarang'] as num?)?.toDouble();
+          // Isi otomatis field odometer akhir dengan odometer sekarang,
+          // pengguna tetap bisa mengubahnya secara manual.
+          if (_kendaraanOdometerSekarang != null) {
+            _odometerAkhirController.text =
+                _kendaraanOdometerSekarang!.toStringAsFixed(0);
+            // Autofill selalu sama dengan odometer sekarang, jadi
+            // tampilkan warning langsung (onChanged tidak terpicu saat autofill).
+            _odometerSamaWarning = true;
+          } else {
+            _odometerSamaWarning = false;
+          }
         });
         if (value != null) await _fetchKlipAktif(value);
       },
@@ -1011,12 +1060,14 @@ class _TambahPerjalananScreenState
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
   }) =>
       TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
         validator: validator,
+        onChanged: onChanged,
         textCapitalization: keyboardType == TextInputType.number
             ? TextCapitalization.none
             : TextCapitalization.characters,

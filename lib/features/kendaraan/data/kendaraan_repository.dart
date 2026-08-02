@@ -56,6 +56,12 @@ class KendaraanRepository {
   }
 
   Future<void> delete(String id) async {
-    await _db.from('kendaraan').delete().eq('id', id);
+    final result =
+        await _db.from('kendaraan').delete().eq('id', id).select('id');
+    if ((result as List).isEmpty) {
+      throw StateError(
+        'Gagal menghapus kendaraan. Data mungkin sudah tidak ada atau akses ditolak.',
+      );
+    }
   }
 }

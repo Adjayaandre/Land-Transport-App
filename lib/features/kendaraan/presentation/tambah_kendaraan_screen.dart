@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_text_colors.dart';
+import '../../dashboard/domain/dashboard_provider.dart';
 import '../domain/kendaraan_model.dart';
 import '../domain/kendaraan_provider.dart';
 
@@ -110,7 +111,7 @@ class _TambahKendaraanScreenState
         );
       }
 
-      ref.invalidate(kendaraanListProvider);
+      ref.invalidate(kendaraanStatusProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

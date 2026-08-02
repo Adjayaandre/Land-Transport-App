@@ -500,7 +500,17 @@ class PerjalananPdfService {
       ),
     );
 
-    // ── Halaman per perjalanan ─────────────────────────────
+    // ── Halaman per perjalanan (urut dari terdahulu ke terakhir) ──
+    perjalananList.sort((a, b) {
+      final tglA = a['tanggal'] as String? ?? '';
+      final tglB = b['tanggal'] as String? ?? '';
+      final cmpTgl = tglA.compareTo(tglB);
+      if (cmpTgl != 0) return cmpTgl;
+      // Jika tanggal sama, urutkan berdasarkan waktu jemput
+      final wA = a['waktu_jemput'] as String? ?? '';
+      final wB = b['waktu_jemput'] as String? ?? '';
+      return wA.compareTo(wB);
+    });
     for (final trip in perjalananList) {
       await _addTripPage(pdf, trip, kendaraan);
     }

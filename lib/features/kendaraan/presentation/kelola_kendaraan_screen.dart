@@ -9,6 +9,7 @@ import '../../../core/theme/app_text_colors.dart';
 import '../../../shared/app_nav_brand.dart';
 import '../../../shared/empty_state.dart';
 import '../../../shared/vehicle_avatar.dart';
+import '../../dashboard/domain/dashboard_provider.dart';
 import '../domain/kendaraan_model.dart';
 import '../domain/kendaraan_provider.dart';
 
@@ -60,12 +61,13 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
 
     if (confirm == true && mounted) {
       try {
-        final futures = _selectedIds
-            .map((id) => ref.read(kendaraanRepositoryProvider).delete(id));
-        await Future.wait(futures);
+        final idsToDelete = Set<String>.from(_selectedIds);
+        await ref
+            .read(kendaraanListProvider.notifier)
+            .deleteByIds(idsToDelete);
 
         _exitSelectionMode();
-        ref.invalidate(kendaraanListProvider);
+        ref.invalidate(kendaraanStatusProvider);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -219,7 +221,8 @@ class _KelolaKendaraanScreenState extends ConsumerState<KelolaKendaraanScreen> {
 
                 return RefreshIndicator(
                   color: AppColors.primary,
-                  onRefresh: () async => ref.invalidate(kendaraanListProvider),
+                  onRefresh: () =>
+                      ref.read(kendaraanListProvider.notifier).reload(),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     itemCount: filtered.length,
