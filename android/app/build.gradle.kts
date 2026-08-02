@@ -6,8 +6,8 @@ plugins {
 }
 
 android {
-    namespace = "com.yourcompany.land_transport_app"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.snepacindoservice.land_transport_app"
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
