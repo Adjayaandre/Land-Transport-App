@@ -179,24 +179,76 @@ class _TambahPerjalananScreenState
     // Konfirmasi buat klip baru
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Buat Klip Baru'),
-        content: const Text(
-          'Apakah anda yakin ingin membuat klip perjalanan baru?\n\n'
-          'Klip baru akan dimulai saat ini.',
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add_road_rounded,
+                    color: AppColors.primary, size: 28),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Buat Klip Baru?',
+                style: AppTextColors.style(ctx,
+                    fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Klip perjalanan baru akan langsung dimulai saat ini dan siap diisi data perjalanan.',
+                textAlign: TextAlign.center,
+                style: AppTextColors.style(ctx,
+                    fontSize: 13,
+                    color: Theme.of(ctx).textTheme.bodySmall?.color,
+                    height: 1.4),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: AppColors.border),
+                      ),
+                      onPressed: () =>
+                          Navigator.of(ctx, rootNavigator: true).pop(false),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () =>
+                          Navigator.of(ctx, rootNavigator: true).pop(true),
+                      child: const Text('Buat'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(ctx, rootNavigator: true).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: const Text('Buat Klip Baru'),
-          ),
-        ],
       ),
     );
 
@@ -234,137 +286,253 @@ class _TambahPerjalananScreenState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Tutup Klip Saat Ini'),
-          content: SingleChildScrollView(
+        builder: (ctx, setDialogState) => Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Sebelum membuat klip baru, tutup klip aktif dengan mengisi data berikut:',
-                  style: TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                const Text('Odometer Terakhir (KM)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: odometerCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Masukkan odometer',
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    helperText: _kendaraanOdometerSekarang != null
-                        ? 'Odometer sekarang: ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM'
-                        : null,
+                // ── Header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.lock_clock_rounded,
+                            color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tutup Klip Saat Ini',
+                              style: AppTextColors.style(ctx,
+                                  fontSize: 16, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Lengkapi data berikut sebelum membuat klip baru',
+                              style: AppTextColors.style(ctx,
+                                  fontSize: 12,
+                                  color:
+                                      Theme.of(ctx).textTheme.bodySmall?.color),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Foto Odometer',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                FotoPicker(
-                  fotoBytes: fotoOdometerBytes,
-                  label: 'Foto panel odometer',
-                  icon: Icons.speed_rounded,
-                  onFotoSelected: (b) =>
-                      setDialogState(() => fotoOdometerBytes = b),
-                  onHapus: () =>
-                      setDialogState(() => fotoOdometerBytes = null),
+                Divider(height: 1, color: AppColors.border),
+
+                // ── Body ──
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _DialogSectionLabel(
+                          icon: Icons.speed_rounded,
+                          label: 'Odometer Terakhir',
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: odometerCtrl,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Masukkan odometer',
+                            suffixText: 'KM',
+                            filled: true,
+                            fillColor: Theme.of(ctx)
+                                .inputDecorationTheme
+                                .fillColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primary, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            helperText: _kendaraanOdometerSekarang != null
+                                ? 'Odometer sekarang: ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM'
+                                : null,
+                            helperStyle: const TextStyle(fontSize: 11.5),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _DialogSectionLabel(
+                          icon: Icons.camera_alt_rounded,
+                          label: 'Foto Odometer',
+                        ),
+                        const SizedBox(height: 8),
+                        FotoPicker(
+                          fotoBytes: fotoOdometerBytes,
+                          label: 'Foto panel odometer',
+                          icon: Icons.speed_rounded,
+                          onFotoSelected: (b) =>
+                              setDialogState(() => fotoOdometerBytes = b),
+                          onHapus: () =>
+                              setDialogState(() => fotoOdometerBytes = null),
+                        ),
+                        const SizedBox(height: 20),
+                        _DialogSectionLabel(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Foto Nota Bensin',
+                        ),
+                        const SizedBox(height: 8),
+                        FotoPicker(
+                          fotoBytes: fotoNotaBytes,
+                          label: 'Foto nota pembelian bensin',
+                          icon: Icons.receipt_long_outlined,
+                          onFotoSelected: (b) =>
+                              setDialogState(() => fotoNotaBytes = b),
+                          onHapus: () =>
+                              setDialogState(() => fotoNotaBytes = null),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Foto Nota Bensin',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                FotoPicker(
-                  fotoBytes: fotoNotaBytes,
-                  label: 'Foto nota pembelian bensin',
-                  icon: Icons.receipt_long_outlined,
-                  onFotoSelected: (b) =>
-                      setDialogState(() => fotoNotaBytes = b),
-                  onHapus: () => setDialogState(() => fotoNotaBytes = null),
+
+                Divider(height: 1, color: AppColors.border),
+                // ── Actions ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            side: BorderSide(color: AppColors.border),
+                          ),
+                          onPressed: uploading
+                              ? null
+                              : () => Navigator.of(ctx, rootNavigator: true)
+                                  .pop(false),
+                          child: const Text('Batal'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: uploading
+                              ? null
+                              : () async {
+                                  final odometer =
+                                      double.tryParse(odometerCtrl.text.trim());
+                                  if (odometer == null) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(
+                                            content:
+                                                Text('Odometer wajib diisi')));
+                                    return;
+                                  }
+                                  if (_kendaraanOdometerSekarang != null &&
+                                      odometer < _kendaraanOdometerSekarang!) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                        content: Text(
+                                            'Odometer tidak boleh kurang dari ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM')));
+                                    return;
+                                  }
+                                  if (fotoOdometerBytes == null) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Foto odometer wajib diambil')));
+                                    return;
+                                  }
+                                  if (fotoNotaBytes == null) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Foto nota bensin wajib diambil')));
+                                    return;
+                                  }
+                                  setDialogState(() => uploading = true);
+                                  try {
+                                    await ref
+                                        .read(klipRepositoryProvider)
+                                        .tutupKlip(
+                                          klipId: _klipAktifId!,
+                                          odometerTutup: odometer,
+                                          fotoNotaBytes: fotoNotaBytes!,
+                                          fotoOdometerBytes: fotoOdometerBytes!,
+                                        );
+                                    // Update odometer kendaraan agar tersinkron
+                                    await ref
+                                        .read(tripRepositoryProvider)
+                                        .updateOdometerKendaraan(
+                                          _kendaraanId!,
+                                          odometer,
+                                        );
+                                    if (mounted) {
+                                      setState(() =>
+                                          _kendaraanOdometerSekarang = odometer);
+                                    }
+                                    if (ctx.mounted) {
+                                      Navigator.of(ctx, rootNavigator: true)
+                                          .pop(true);
+                                    }
+                                  } catch (e) {
+                                    setDialogState(() => uploading = false);
+                                    if (ctx.mounted) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        SnackBar(
+                                            content:
+                                                Text('Gagal menutup klip: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: uploading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : const Text('Tutup Klip'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: uploading
-                  ? null
-                  : () => Navigator.of(ctx, rootNavigator: true).pop(false),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: uploading
-                  ? null
-                  : () async {
-                      final odometer =
-                          double.tryParse(odometerCtrl.text.trim());
-                      if (odometer == null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                            content: Text('Odometer wajib diisi')));
-                        return;
-                      }
-                      if (_kendaraanOdometerSekarang != null &&
-                          odometer < _kendaraanOdometerSekarang!) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                            content: Text(
-                                'Odometer tidak boleh kurang dari ${_kendaraanOdometerSekarang!.toStringAsFixed(0)} KM')));
-                        return;
-                      }
-                      if (fotoOdometerBytes == null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                            content: Text('Foto odometer wajib diambil')));
-                        return;
-                      }
-                      if (fotoNotaBytes == null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                            content: Text('Foto nota bensin wajib diambil')));
-                        return;
-                      }
-                      setDialogState(() => uploading = true);
-                      try {
-                        await ref.read(klipRepositoryProvider).tutupKlip(
-                              klipId: _klipAktifId!,
-                              odometerTutup: odometer,
-                              fotoNotaBytes: fotoNotaBytes!,
-                              fotoOdometerBytes: fotoOdometerBytes!,
-                            );
-                        // Update odometer kendaraan agar tersinkron
-                        await ref
-                            .read(tripRepositoryProvider)
-                            .updateOdometerKendaraan(
-                              _kendaraanId!,
-                              odometer,
-                            );
-                        if (mounted) {
-                          setState(() =>
-                              _kendaraanOdometerSekarang = odometer);
-                        }
-                        if (ctx.mounted) {
-                          Navigator.of(ctx, rootNavigator: true).pop(true);
-                        }
-                      } catch (e) {
-                        setDialogState(() => uploading = false);
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('Gagal menutup klip: $e')),
-                          );
-                        }
-                      }
-                    },
-              child: uploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Tutup Klip'),
-            ),
-          ],
         ),
       ),
     );
@@ -1098,4 +1266,27 @@ class _TambahPerjalananScreenState
               borderSide: const BorderSide(color: AppColors.cancelled)),
         ),
       );
+}
+
+// ── Label section kecil untuk dialog (ikon + teks) ─────────────────────────
+class _DialogSectionLabel extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _DialogSectionLabel({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: AppTextColors.style(context,
+              fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
 }

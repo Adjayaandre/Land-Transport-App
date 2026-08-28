@@ -356,6 +356,7 @@ class _RiwayatPerjalananScreenState
     final isSuperadmin = user?.role == 'superadmin';
     final isAdmin = user?.role == 'admin';
     final canExport = isSuperadmin || isAdmin;
+    final canDelete = isSuperadmin || isAdmin;
     final riwayatAsync = ref.watch(_riwayatProvider);
 
     return Scaffold(
@@ -531,9 +532,12 @@ class _RiwayatPerjalananScreenState
                     itemBuilder: (context, i) => _KlipCard(
                       klip: filtered[i],
                       isSuperadmin: isSuperadmin,
+                      canDelete: canDelete,
                       isSelected: _selectedKlipIds.contains(filtered[i]['id'] as String),
                       isSelecting: _isSelecting,
-                      onLongPress: () => _toggleSelection(filtered[i]['id'] as String),
+                      onLongPress: canDelete
+                          ? () => _toggleSelection(filtered[i]['id'] as String)
+                          : null,
                       onTap: () {
                         if (_isSelecting) {
                           _toggleSelection(filtered[i]['id'] as String);
@@ -836,16 +840,18 @@ class _KlipCard extends StatefulWidget {
   final bool isSuperadmin;
   final bool isSelected;
   final bool isSelecting;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final VoidCallback onTap;
   final void Function(Map<String, dynamic>) onDeleteTrip;
   final void Function(Map<String, dynamic>) onEditTrip;
   final void Function(Map<String, dynamic>, Map<String, dynamic>?) onExportPdf;
   final VoidCallback onExportKlipPdf;
+  final bool canDelete;
 
   const _KlipCard({
     required this.klip,
     required this.isSuperadmin,
+    required this.canDelete,
     required this.isSelected,
     required this.isSelecting,
     required this.onLongPress,
@@ -1093,6 +1099,7 @@ class _KlipCardState extends State<_KlipCard> {
                 itemBuilder: (context, i) => _TripItem(
                   trip: perjalanan[i],
                   isSuperadmin: widget.isSuperadmin,
+                  canDelete: widget.canDelete,
                   onEdit: () => widget.onEditTrip(perjalanan[i]),
                   onDelete: () => widget.onDeleteTrip(perjalanan[i]),
                   onExportPdf: () => widget.onExportPdf(perjalanan[i], kendaraan),
@@ -1277,6 +1284,7 @@ class _FotoFullscreenState extends State<_FotoFullscreen> {
 class _TripItem extends StatelessWidget {
   final Map<String, dynamic> trip;
   final bool isSuperadmin;
+  final bool canDelete;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onExportPdf;
@@ -1284,6 +1292,7 @@ class _TripItem extends StatelessWidget {
   const _TripItem({
     required this.trip,
     required this.isSuperadmin,
+    required this.canDelete,
     required this.onEdit,
     required this.onDelete,
     required this.onExportPdf,
@@ -1318,7 +1327,7 @@ class _TripItem extends StatelessWidget {
                     fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
-            if (isSuperadmin) ...[
+            if (canDelete) ...[
               GestureDetector(
                 onTap: onEdit,
                 child: Icon(Icons.edit_outlined,
